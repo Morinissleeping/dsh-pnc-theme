@@ -1,0 +1,6 @@
+# dsh-pnc-theme bundle 层：把 PNC 云图风格主题插件插入装配树。
+# 形态与 @dsh-external/dsh-super-injector 的 bundle 层一致。
+- insert:
+    - id: dsh-pnc-theme
+      name: '@dsh-external/dsh-pnc-theme'
+      config: {}

@@ -20,15 +20,25 @@
 | `/pnc-activity.json` | LLM 工作状态评分（score/level/events） |
 | `/pnc-bg.mp4` | 背景视频（Range 支持） |
 
-## 运行时依赖（外部路径，按需修改 src/index.ts）
+## 运行时依赖（全部内嵌，开箱即用）
 
-| 路径 | 用途 |
-|---|---|
-| `D:/gfl2mod/pnc_creds.json` | 凭据（cookie/workspace_id/limits） |
-| `D:/gfl2mod/fetch_quota.py` | 配额抓取脚本（requests + 浏览器头） |
-| `D:/gfl2mod/*.mp4 / *.webp / *.png` | 背景视频与等高线素材 |
+v0.1.1 起为**自包含可移植版**：视频、等高线素材、配额抓取脚本、注入 CSS/JS 全部打进 `lib/assets/`，不依赖任何外部路径。
 
-> 素材（CSS/JS/鱼路径）已打包进 `lib/assets/`；媒体与凭据为外部路径。
+凭据（cookie/workspace_id/limits）为私有数据**不打包**，默认读写 `~/.dsh/pnc_creds.json`（可通过配置面板 ⚙ 写入），可用环境变量覆盖：
+
+| 环境变量 | 默认值 | 用途 |
+|---|---|---|
+| `PNC_CREDS_PATH` | `~/.dsh/pnc_creds.json` | 凭据文件路径 |
+| `PNC_BG_VIDEO` | 包内 `lib/assets/bg.mp4` | 背景视频路径（可指向任意本地 mp4，避免打包大视频） |
+| `PNC_PYTHON` | `python`（优先 `C:/Program Files/Python312/python.exe` 若存在） | 配额抓取脚本解释器 |
+| `PNC_CWD` | 无 | 抓取脚本工作目录（一般无需设置） |
+
+## 权限与隐私
+
+- **凭据**：`~/.dsh/pnc_creds.json` 仅存于本机（默认路径，可用 `PNC_CREDS_PATH` 改），插件只在本机读写，不上传
+- **网络请求**：配额抓取脚本仅访问 `https://opencode.ai/workspace/<id>/go`（携带你配置的 cookie，用于读取用量）
+- **页面注入**：主题通过 tapIndex 注入 CSS/JS 到 Web GUI 页面；`/pnc-*` 端点仅本机 webServer 提供
+- **可选禁用**：`?pnc-novid=1` 可关背景视频；不想用配额抓取可不填 cookie（主题其余功能不受影响）
 
 ## 构建
 
@@ -37,14 +47,26 @@ DSH_CHECKOUT=<checkout> bash scripts/build.sh
 # 产物：dsh-external-dsh-pnc-theme-<version>.tgz（含 lib/ 与 lib/assets/）
 ```
 
-## 注入
+## 在其他 DSH 上安装
 
-注入器环境内：`dev_inject_plugin <本目录>` 或安装 tgz 后装配。
+1. 拷贝 `dsh-external-dsh-pnc-theme-<version>.tgz` 到目标机
+2. 注入器环境内安装（热装配 + 重启后由 bundles 自动装配）：
+   ```bash
+   # 解包到插件目录后
+   dev_install_package <插件目录>   # 或 dev_inject_plugin <插件目录> 仅运行时注入
+   ```
+3. 标准 Cordis 环境（无注入器）：
+   ```bash
+   npm install dsh-external-dsh-pnc-theme-<version>.tgz
+   # 在 profile/host 配置的 plugins 列表中加入 @dsh-external/dsh-pnc-theme
+   ```
+4. 打开 Web GUI → 点击 ⚙ → 粘贴 OpenCode cookie + workspace_id → 保存（写入凭据文件）
+5. 刷新页面查看主题
 
 ## 发布
 
 ```bash
 # 需要 git 仓库 + gh CLI 认证
-git init && git add -A && git commit -m "v0.1.0"
-gh release create v0.1.0 dsh-external-dsh-pnc-theme-0.1.0.tgz
+git init && git add -A && git commit -m "v0.1.1"
+gh release create v0.1.1 dsh-external-dsh-pnc-theme-0.1.1.tgz
 ```

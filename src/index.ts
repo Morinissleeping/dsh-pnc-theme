@@ -9,20 +9,28 @@
  *
  * 资源：lib/assets/ 内素材（构建时由 scripts/build.sh 拷贝）。
  */
-import type { Context } from 'cordis'
+import type { Context } from '@deepseek-ai/cordis'
 import { fileURLToPath } from 'node:url'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import { existsSync } from 'node:fs'
 
 export const name = '@dsh-external/dsh-pnc-theme'
 
-const VIDEO_PATH = 'D:/gfl2mod/【钢铁雄心4KX填词】不堪重负的合众国 - Original.mp4'
-const CONTOUR_PATH = 'D:/gfl2mod/e61c2cc0659862858de9cb3b5c5c617cfb81c92d706b2-KfnU0c_fw658.webp'
-const CONTOUR_INV_PATH = 'D:/gfl2mod/contour_inv.png'
-const CONTOUR_ALPHA_PATH = 'D:/gfl2mod/contour_inv_alpha.png'
-const CREDS_PATH = 'D:/gfl2mod/pnc_creds.json'
-const FETCH_SCRIPT = 'D:/gfl2mod/fetch_quota.py'
+// 资源默认内嵌在插件包 lib/assets/（构建时由 scripts/build.sh 拷贝），开箱即用；
+// 背景视频可用环境变量 PNC_BG_VIDEO 覆盖为任意本地文件路径（如不想打包大视频）。
+// creds（cookie/workspace_id/限额）为私有数据不打包：默认存 ~/.dsh/pnc_creds.json，
+// 可用环境变量 PNC_CREDS_PATH 覆盖（或通过 /pnc-config 配置面板写入）。
+const VIDEO_PATH = process.env.PNC_BG_VIDEO || fileURLToPath(new URL('./assets/bg.mp4', import.meta.url))
+const CREDS_PATH = process.env.PNC_CREDS_PATH || join(homedir(), '.dsh', 'pnc_creds.json')
+const FETCH_SCRIPT = fileURLToPath(new URL('./assets/fetch_quota.py', import.meta.url))
+const PYTHON = process.env.PNC_PYTHON || (existsSync('C:/Program Files/Python312/python.exe') ? 'C:/Program Files/Python312/python.exe' : 'python')
 const FISH_FILE = fileURLToPath(new URL('./assets/pnc_fish_path.txt', import.meta.url))
 const CSS_FILE = fileURLToPath(new URL('./assets/pnc_inject.css', import.meta.url))
 const JS_FILE = fileURLToPath(new URL('./assets/pnc_inject.js', import.meta.url))
+
+// 硬依赖：等 webServer/fs 服务就绪后再 apply（修复启动早期恢复时服务未就绪导致 apply 提前 return）
+export const inject = ['webServer', 'fs']
 
 export function apply(ctx: Context): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,12 +45,6 @@ export function apply(ctx: Context): void {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let cached: any = null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let contourCached: any = null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let contourInvCached: any = null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let contourAlphaCached: any = null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let probeData: any = null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -85,27 +87,6 @@ export function apply(ctx: Context): void {
     const bytes = await fs.readBytes(target, undefined, 512 * 1024 * 1024)
     cached = { bytes, size: info ? Number(info.size) : bytes.byteLength }
     return cached
-  }
-  async function loadContour() {
-    if (contourCached) return contourCached
-    const target = await fs.resolve(CONTOUR_PATH)
-    const bytes = await fs.readBytes(target, undefined, 8 * 1024 * 1024)
-    contourCached = bytes
-    return contourCached
-  }
-  async function loadContourInv() {
-    if (contourInvCached) return contourInvCached
-    const target = await fs.resolve(CONTOUR_INV_PATH)
-    const bytes = await fs.readBytes(target, undefined, 8 * 1024 * 1024)
-    contourInvCached = bytes
-    return contourInvCached
-  }
-  async function loadContourAlpha() {
-    if (contourAlphaCached) return contourAlphaCached
-    const target = await fs.resolve(CONTOUR_ALPHA_PATH)
-    const bytes = await fs.readBytes(target, undefined, 8 * 1024 * 1024)
-    contourAlphaCached = bytes
-    return contourAlphaCached
   }
 
   function parseWindowBlock(block: string): Record<string, number | null> {
@@ -161,8 +142,8 @@ export function apply(ctx: Context): void {
         return null
       }
       const proc = subprocess.spawn({
-        argv: ['C:/Program Files/Python312/python.exe', FETCH_SCRIPT],
-        cwd: 'D:/gfl2mod',
+        argv: [PYTHON, FETCH_SCRIPT, CREDS_PATH],
+        cwd: process.env.PNC_CWD || undefined,
         stdio: { stdin: 'ignore', stdout: { maxBytes: 2 * 1024 * 1024 }, stderr: { maxBytes: 65536 } },
         graceMs: 40000,
       })
@@ -292,48 +273,6 @@ export function apply(ctx: Context): void {
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'text/plain' })
         res.end('video load failed: ' + String(err instanceof Error ? err.message : err))
-      }
-    },
-  }))
-  disposers.push(webServer.register({
-    kind: 'exact',
-    path: '/pnc-contour.webp',
-    handler: async (req: any, res: any) => {
-      try {
-        const bytes = await loadContour()
-        res.writeHead(200, { 'Content-Type': 'image/webp', 'Content-Length': bytes.byteLength, 'Cache-Control': 'no-store' })
-        res.end(bytes)
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'text/plain' })
-        res.end('contour load failed: ' + String(err instanceof Error ? err.message : err))
-      }
-    },
-  }))
-  disposers.push(webServer.register({
-    kind: 'exact',
-    path: '/pnc-contour-inv.png',
-    handler: async (req: any, res: any) => {
-      try {
-        const bytes = await loadContourInv()
-        res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': bytes.byteLength, 'Cache-Control': 'no-store' })
-        res.end(bytes)
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'text/plain' })
-        res.end('contour inv load failed: ' + String(err instanceof Error ? err.message : err))
-      }
-    },
-  }))
-  disposers.push(webServer.register({
-    kind: 'exact',
-    path: '/pnc-contour-inv-alpha.png',
-    handler: async (req: any, res: any) => {
-      try {
-        const bytes = await loadContourAlpha()
-        res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': bytes.byteLength, 'Cache-Control': 'no-store' })
-        res.end(bytes)
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'text/plain' })
-        res.end('contour alpha load failed: ' + String(err instanceof Error ? err.message : err))
       }
     },
   }))

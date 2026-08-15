@@ -1,17 +1,25 @@
 {
   "name": "@dsh-external/dsh-pnc-theme",
-  "version": "0.1.0",
-  "description": "PNC 云图风格主题插件：背景视频/等高线/康威/配额条/LLM 活跃度评分接口",
+  "version": "0.1.1",
+  "description": "PNC 云图风格主题插件（自包含可移植版）：背景视频/等高线/康威/配额条/LLM 活跃度评分",
   "private": true,
   "type": "module",
   "main": "./lib/index.js",
   "types": "./lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
-    "lib"
+    "lib",
+    "cordis.patch.yml"
   ],
   "license": "BSD-3-Clause",
   "peerDependencies": {
-    "cordis": ">=4.0.0-rc <5"
+    "@deepseek-ai/cordis": ">=4.0.1 <5"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
@@ -20,5 +28,10 @@
   "scripts": {
     "build": "bash scripts/build.sh",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   }
 }

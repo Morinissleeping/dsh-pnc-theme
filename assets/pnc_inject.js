@@ -59,7 +59,7 @@
         ctx.moveTo(0, py); ctx.lineTo(cv.width, py);
       }
       ctx.stroke();
-      ctx.fillStyle = 'rgba(122,124,128,0.75)';
+      ctx.fillStyle = 'rgba(122,124,128,0.4)';
       var col0b = Math.floor(off / CW.CS);
       for (var vx = 0; vx <= CW.VW; vx++) {
         var wx = (col0b + vx) % CW.GW;
@@ -167,7 +167,7 @@
     var cv = document.createElement('canvas');
     cv.width = W; cv.height = H;
     var ctx = cv.getContext('2d');
-    ctx.strokeStyle = 'rgba(88,88,90,0.55)';
+    ctx.strokeStyle = 'rgba(88,88,90,0.3)';
     ctx.lineWidth = 1;
     for (var y = 0; y < H - 1; y++) {
       for (var x = 0; x < W - 1; x++) {
@@ -348,6 +348,7 @@
   }
   function buildConfigPanel() {
     var existing = document.getElementById('pnc-config-btn');
+    var label = document.getElementById('pnc-config-label');
     var panel = document.getElementById('pnc-config-panel');
     if (!panel) {
       panel = document.createElement('div');
@@ -436,6 +437,13 @@
       btn.setAttribute('aria-label', 'OpenCode 配额配置');
       btn.textContent = '\u2699';
       document.body.appendChild(btn);
+      if (!label) {
+        label = document.createElement('span');
+        label.id = 'pnc-config-label';
+        label.className = 'pnc-config-label-text';
+        label.textContent = 'OpenCode Go 配额检查';
+        document.body.appendChild(label);
+      }
       btn.addEventListener('click', function () {
         var open = panel.classList.toggle('pnc-config-open');
         if (open) {
@@ -458,6 +466,9 @@
       if (anchor.parentNode !== existing.parentNode || anchor.previousElementSibling !== existing) {
         anchor.parentNode.insertBefore(existing, anchor);
       }
+      if (label && (label.parentNode !== anchor.parentNode || label.nextElementSibling !== existing)) {
+        anchor.parentNode.insertBefore(label, existing);
+      }
     } else {
       var util = document.querySelector('.wSkVaW_headerUtilities');
       var hdr = document.querySelector('.wSkVaW_header');
@@ -466,6 +477,9 @@
       else if (hdr && hdr.getBoundingClientRect().width > 0) visibleHeader = hdr;
       if (visibleHeader) {
         if (visibleHeader.firstChild !== existing) visibleHeader.insertBefore(existing, visibleHeader.firstChild);
+        if (label && (label.parentNode !== visibleHeader || label.nextElementSibling !== existing)) {
+          visibleHeader.insertBefore(label, existing);
+        }
       } else {
         floatMode = true;
         if (existing.parentNode !== document.body) document.body.appendChild(existing);
@@ -473,6 +487,7 @@
     }
     if (floatMode) existing.classList.add('pnc-config-float');
     else existing.classList.remove('pnc-config-float');
+    if (label) label.style.display = floatMode ? 'none' : '';
     // v141：早期（session log 未渲染）隐藏按钮避免右下角闪现；找到锚点或超时兜底后再显示
     if (window.__pncConfigEarly && floatMode) {
       existing.style.display = 'none';

@@ -21,6 +21,7 @@ button.p-xYUq_action,button._8_XoUG_action,button._8_XoUG_noteOpen,button._8_XoU
 /* v130：配置按钮移到会话日志左侧（header 内联按钮）；header 隐藏时浮动右下角 */
 .pnc-config-btn{background:#3A3F45 !important;color:#fff !important;border:none !important;width:28px !important;height:28px !important;font-size:16px !important;line-height:1 !important;cursor:pointer !important;box-shadow:none !important;flex:none !important;padding:0 !important;margin:0 !important}
 .pnc-config-btn:hover{background:#4A4F56 !important}
+.pnc-config-label-text{display:inline-flex !important;align-items:center !important;color:#a8b0ba !important;font-size:12px !important;font-weight:400 !important;margin-right:8px !important;white-space:nowrap !important;font-family:"Source Han Sans SC","Source Han Sans CN","Source Han Sans","思源黑体","Noto Sans CJK SC","Microsoft YaHei",sans-serif !important}
 .pnc-config-btn.pnc-config-float{position:fixed !important;right:16px !important;bottom:16px !important;z-index:9998 !important;width:40px !important;height:40px !important;font-size:20px !important;box-shadow:0 2px 6px rgba(0,0,0,0.3) !important}
 .pnc-config-panel{position:fixed !important;z-index:9999 !important;width:320px !important;background:#2C2C2E !important;border:1px solid rgba(255,255,255,0.14) !important;color:#e8ecf1 !important;padding:12px !important;display:none !important;font-family:"Source Han Sans SC","Source Han Sans CN","Source Han Sans","思源黑体","Noto Sans CJK SC","Microsoft YaHei",sans-serif !important;box-shadow:0 4px 16px rgba(0,0,0,0.5) !important}
 .pnc-config-panel.pnc-config-open{display:block !important}
@@ -41,14 +42,20 @@ body[data-ds-dark-theme]{--dsw-alias-bg-base:rgba(21,21,23,0);--dsw-alias-bg-lay
 .wSkVaW_composerSeat{background:transparent !important}
 .wSkVaW_composerStack{margin-top:36px !important;min-height:150px !important}
 @keyframes pnc-contour-flow-x{from{background-position:0 var(--pnc-offset-y,0)}to{background-position:-320px var(--pnc-offset-y,0)}}
-/* v149：左栏+上栏完全不透明（rgba(27,27,28,1)），等高线更灰 */
-.pI_x6G_sidebarCol{background-color:rgba(27,27,28,1) !important;animation:pnc-contour-flow-x 180s linear infinite !important}
+/* v150：Session log 按钮改深灰（仿搜索按钮）；信息流更黑；视频毛玻璃 */
+.nL4_yW_sessionLogButton{background:#3A3F45 !important;color:#fff !important;border-color:#3A3F45 !important;opacity:1 !important;position:relative;overflow:hidden}
+.nL4_yW_sessionLogButton:hover:not(:disabled){background:#4A4F56 !important;color:#fff !important;opacity:1 !important}
+.nL4_yW_sessionLogButton:active{transform:none !important}
+.nL4_yW_sessionLogButton:disabled{opacity:1 !important}
+#pnc-bg-video{filter:blur(6px) brightness(0.8) saturate(0.9) !important}
+/* v152：左栏+上栏半透明回调（rgba(27,27,28,0.9)），等高线更灰 */
+.pI_x6G_sidebarCol{background-color:rgba(27,27,28,0.9) !important;animation:pnc-contour-flow-x 180s linear infinite !important}
 .hHd-Xa_root{background:transparent !important}
-.wSkVaW_header{background-color:rgba(27,27,28,1) !important;position:relative;animation:pnc-contour-flow-x 180s linear infinite !important}
+.wSkVaW_header{background-color:rgba(27,27,28,0.9) !important;position:relative;animation:pnc-contour-flow-x 180s linear infinite !important}
 .wSkVaW_headerUtilities{position:absolute !important;top:50% !important;transform:translateY(-50%) !important;right:28px !important;margin-left:0 !important}
 .pI_x6G_centerCol,.wSkVaW_root{background:transparent !important}
 .pI_x6G_centerCol{position:relative}
-.pI_x6G_centerCol::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:890px;margin-left:-445px;background:rgba(27,27,28,0.75);z-index:-1;pointer-events:none}
+.pI_x6G_centerCol::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:890px;margin-left:-445px;background:rgba(27,27,28,0.85);z-index:-1;pointer-events:none}
 .gdEzaW_bubble{background:rgba(44,44,46,0.1) !important}
 .Md3f7G_column{position:relative !important}
 .pnc-conway{position:absolute !important;left:50% !important;margin-left:-445px !important;top:0 !important;display:block !important;z-index:-1 !important;pointer-events:none !important}
@@ -84,10 +91,10 @@ body[data-ds-dark-theme]{--dsw-alias-bg-base:rgba(21,21,23,0);--dsw-alias-bg-lay
 .Nqubda_badge:active{transform:none !important}
 @keyframes pnc-btn-sweep{from{left:-60%}to{left:130%}}
 .pnc-sweep-glow{position:absolute;top:0;bottom:0;left:-60%;width:40%;pointer-events:none;z-index:2;background:linear-gradient(100deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);transform:skewX(-18deg);animation:pnc-btn-sweep 0.3s ease-out}
-.hHd-Xa_newSession,.uV2eYG_primary,.nL4_yW_sessionLogButton{background:#F48912 !important;color:#fff !important;border-color:#F48912 !important;position:relative;overflow:hidden;opacity:1 !important}
-.hHd-Xa_newSession:hover:not(:disabled),.uV2eYG_primary:hover:not(:disabled),.nL4_yW_sessionLogButton:hover:not(:disabled){background:#F48912 !important;color:#fff !important;opacity:1 !important}
-.hHd-Xa_newSession:active:not(:disabled),.uV2eYG_primary:active:not(:disabled),.nL4_yW_sessionLogButton:active:not(:disabled){transform:none !important}
-.hHd-Xa_newSession:disabled,.uV2eYG_primary:disabled,.nL4_yW_sessionLogButton:disabled{opacity:1 !important}
+.hHd-Xa_newSession,.uV2eYG_primary{background:#F48912 !important;color:#fff !important;border-color:#F48912 !important;position:relative;overflow:hidden;opacity:1 !important}
+.hHd-Xa_newSession:hover:not(:disabled),.uV2eYG_primary:hover:not(:disabled){background:#F48912 !important;color:#fff !important;opacity:1 !important}
+.hHd-Xa_newSession:active:not(:disabled),.uV2eYG_primary:active:not(:disabled){transform:none !important}
+.hHd-Xa_newSession:disabled,.uV2eYG_primary:disabled{opacity:1 !important}
 .uV2eYG_add,.qDHVXG_searchButton,.pXSMma_workspace,.qDHVXG_iconButton{background:#3A3F45 !important;color:#fff !important;border-color:#3A3F45 !important;position:relative;overflow:hidden;opacity:1 !important}
 .uV2eYG_add:hover:not(:disabled),.qDHVXG_searchButton:hover:not(:disabled),.pXSMma_workspace:hover:not(:disabled),.qDHVXG_iconButton:hover:not(:disabled){background:#3A3F45 !important;color:#fff !important;opacity:1 !important}
 .uV2eYG_add:active:not(:disabled),.qDHVXG_searchButton:active:not(:disabled),.pXSMma_workspace:active:not(:disabled),.qDHVXG_iconButton:active:not(:disabled){transform:none !important}
