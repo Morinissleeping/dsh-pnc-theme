@@ -277,7 +277,7 @@ textarea.pnc-input{resize:vertical;min-height:72px}
 				React.createElement("p", { className: "pnc-desc" }, bgDesc()),
 				rangeRow("背景不透明度", "videoAlpha", 0, 1, 0.05, (v) => Math.round(v * 100) + "%"),
 				rangeRow("毛玻璃不透明度", "glassAlpha", 0, 1, 0.05, (v) => Math.round(v * 100) + "%"),
-				React.createElement("p", { className: "pnc-desc" }, "毛玻璃为独立模糊层（位于背景之上、所有元素之下），数值越高背景越模糊。"),
+				React.createElement("p", { className: "pnc-desc" }, "毛玻璃为独立模糊层，仅覆盖中央聊天区（侧栏/上栏背景保持清晰）；数值越高背景越模糊。"),
 				React.createElement("h4", null, "视觉主题"),
 				React.createElement("div", { className: "pnc-sub" }, "用量条颜色"),
 				colorRow("用量条 5h", "quotaMo"),
