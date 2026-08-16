@@ -23,6 +23,30 @@ export const name = '@dsh-external/dsh-pnc-theme'
 // v156：设置页可上传自定义背景视频 → 存 ~/.dsh/pnc-bg.mp4，优先于环境变量与包内默认。
 const PACKAGE_VIDEO_PATH = fileURLToPath(new URL('./assets/bg.mp4', import.meta.url))
 const UPLOADED_VIDEO_PATH = join(homedir(), '.dsh', 'pnc-bg.mp4')
+// v0.2.0：背景图片上传（~/.dsh/pnc-bg.<ext>，magic bytes 识别类型，与背景视频对称；存在时替代视频）
+const IMG_MIME: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' }
+const IMG_EXTS = ['png', 'jpg', 'gif', 'webp']
+function findUploadedImage(): { path: string; mime: string } | null {
+  try {
+    for (const ext of IMG_EXTS) {
+      const p = join(homedir(), '.dsh', `pnc-bg.${ext}`)
+      if (existsSync(p)) return { path: p, mime: IMG_MIME[ext] }
+    }
+  } catch (e) { /* ignore */ }
+  return null
+}
+function detectImageType(buf: Buffer): string | null {
+  if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'png'
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpg'
+  if (buf.length >= 6 && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) return 'gif'
+  if (buf.length >= 12 && buf.slice(0, 4).toString() === 'RIFF' && buf.slice(8, 12).toString() === 'WEBP') return 'webp'
+  return null
+}
+async function removeUploadedImages(): Promise<void> {
+  for (const ext of IMG_EXTS) {
+    try { await import('node:fs/promises').then((fsp) => fsp.rm(join(homedir(), '.dsh', `pnc-bg.${ext}`), { force: true })) } catch (e) { /* ignore */ }
+  }
+}
 function resolveVideoPath(): string {
   try {
     if (existsSync(UPLOADED_VIDEO_PATH)) return UPLOADED_VIDEO_PATH
@@ -514,6 +538,97 @@ export function apply(ctx: Context): void {
   }))
   disposers.push(webServer.register({
     kind: 'exact',
+    path: '/pnc-bg-img',
+    handler: async (req: any, res: any) => {
+      try {
+        const img = findUploadedImage()
+        if (!img) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' })
+          res.end('no custom bg image')
+          return
+        }
+        const target = await fs.resolve(img.path)
+        const bytes = await fs.readBytes(target, undefined, 256 * 1024 * 1024)
+        res.writeHead(200, { 'Content-Type': img.mime, 'Cache-Control': 'no-store' })
+        res.end(bytes)
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' })
+        res.end('bg image load failed: ' + String(err instanceof Error ? err.message : err))
+      }
+    },
+  }))
+  disposers.push(webServer.register({
+    kind: 'exact',
+    path: '/pnc-bg-img-info',
+    handler: async (req: any, res: any) => {
+      try {
+        const img = findUploadedImage()
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+        if (!img) {
+          res.end(JSON.stringify({ custom: false, path: 'none', size: 0, mime: null }))
+          return
+        }
+        const target = await fs.resolve(img.path)
+        const st = await fs.stat(target)
+        res.end(JSON.stringify({ custom: true, path: img.path, size: st ? Number(st.size) : 0, mime: img.mime }))
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' })
+        res.end('bg image info failed: ' + String(err instanceof Error ? err.message : err))
+      }
+    },
+  }))
+  disposers.push(webServer.register({
+    kind: 'exact',
+    path: '/pnc-bg-img-upload',
+    handler: (req: any, res: any) => {
+      if (req.method !== 'POST') {
+        res.writeHead(405)
+        res.end()
+        return
+      }
+      let body = ''
+      req.on('data', (c: unknown) => { body += c; if (body.length > 512 * 1024 * 1024) req.destroy() })
+      req.on('end', async () => {
+        try {
+          const data = JSON.parse(body)
+          // 空 base64 = 恢复默认（删除自定义图片）
+          if (data.base64 === '') {
+            await removeUploadedImages()
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+            res.end(JSON.stringify({ ok: true, reset: true }))
+            return
+          }
+          if (typeof data.base64 !== 'string' || data.base64.length === 0) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
+            res.end(JSON.stringify({ ok: false, error: '缺少图片数据' }))
+            return
+          }
+          const buf = Buffer.from(data.base64, 'base64')
+          if (buf.length < 64) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
+            res.end(JSON.stringify({ ok: false, error: '图片文件过小（<64B）' }))
+            return
+          }
+          const type = detectImageType(buf)
+          if (!type) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
+            res.end(JSON.stringify({ ok: false, error: '仅支持 PNG/JPEG/GIF/WebP 图片' }))
+            return
+          }
+          try { mkdirSync(join(homedir(), '.dsh'), { recursive: true }) } catch (e) { /* ignore */ }
+          await removeUploadedImages()
+          await writeFile(join(homedir(), '.dsh', `pnc-bg.${type}`), buf)
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ ok: true, size: buf.length, mime: IMG_MIME[type], path: join(homedir(), '.dsh', `pnc-bg.${type}`) }))
+        } catch (e) {
+          res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ ok: false, error: String(e instanceof Error ? e.message : e) }))
+        }
+      })
+    },
+  }))
+  disposers.push(webServer.register({
+    kind: 'exact',
     path: '/pnc-probe',
     handler: (req: any, res: any) => {
       if (req.method === 'POST') {
@@ -547,8 +662,18 @@ export function apply(ctx: Context): void {
       '</style>\n' +
       '<video id="pnc-bg-video" src="/pnc-bg.mp4" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>' +
       '<script>\n' + String(jsText) + '\n</script>'
-    if (out.indexOf('</body>') !== -1) return out.replace('</body>', injected + '</body>')
-    return out + injected
+    // v0.2.0：自定义背景图片存在时注入 img（替代视频）
+    let bgImgHtml = ''
+    try {
+      const img = findUploadedImage()
+      if (img) {
+        bgImgHtml = '<img id="pnc-bg-img" src="/pnc-bg-img" alt="" aria-hidden="true">\n' +
+          '<style id="pnc-bg-img-style">#pnc-bg-img{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-3;pointer-events:none;background:#0d1117}#pnc-bg-video{display:none !important}</style>\n'
+      }
+    } catch (e) { /* ignore */ }
+    const finalInject = bgImgHtml + injected
+    if (out.indexOf('</body>') !== -1) return out.replace('</body>', finalInject + '</body>')
+    return out + finalInject
   }))
   ctx.effect(() => () => {
     for (const d of disposers) {

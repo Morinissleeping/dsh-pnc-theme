@@ -4,6 +4,8 @@
   if (location.search.indexOf('pnc-novid') !== -1) {
     var v = document.getElementById('pnc-bg-video');
     if (v) { v.style.display = 'none'; v.preload = 'none'; v.removeAttribute('src'); try { v.load(); } catch (e) {} }
+    var img = document.getElementById('pnc-bg-img');
+    if (img) img.style.display = 'none';
     document.documentElement.style.background = '#0d1117';
     document.body.style.background = '#0d1117';
   }

@@ -7,6 +7,7 @@
 ## 功能
 
 - **背景视频**：全屏循环播放背景视频（深色战争画面），`?pnc-novid=1` 可禁用；可上传自定义 mp4 替代包内默认
+- **背景图片**：上传 PNG/JPEG/GIF/WebP 作为页面背景（存在时替代背景视频），可随时恢复默认
 - **等高线背景**：左栏/上栏深色底 + marching squares 生成的连续等高线流动（三档密度随 LLM 活跃度切换，密度/流动周期/刷新间隔可配置）
 - **康威生命棋盘**：中央聊天区背景的生命游戏棋盘，播种密度由 LLM 工作状态驱动（活跃时密集、空闲时稀疏）
 - **LLM 活跃度评分接口**：`/pnc-activity.json` —— 监听 `session/event`（assistant/chunk、tool/call、tool/result 等）实时量化 LLM 工作状态（0-100，每秒衰减 6%）
@@ -25,6 +26,9 @@
 | `/pnc-bg.mp4` | 背景视频（Range 支持） |
 | `/pnc-bg-info` | 背景视频当前状态（自定义/包内默认/大小） |
 | `/pnc-bg-upload` | POST base64 上传自定义背景视频（空 base64 = 恢复默认） |
+| `/pnc-bg-img` | 自定义背景图片（Content-Type 自动识别） |
+| `/pnc-bg-img-info` | 背景图片当前状态（自定义/大小/类型） |
+| `/pnc-bg-img-upload` | POST base64 上传自定义背景图片（空 base64 = 恢复默认） |
 
 ## 运行时依赖（全部内嵌，开箱即用）
 
@@ -45,6 +49,7 @@ v0.1.1 起为**自包含可移植版**：视频、等高线素材、配额抓取
 
 - **凭据与限额**：Cookie / Workspace ID / 5h·7d·1m 金额限额（含配置教程）
 - **背景视频**：上传自定义 mp4（无大小上限）、恢复默认、背景视频不透明度
+- **背景图片**：上传 PNG/JPEG/GIF/WebP（存在时替代背景视频）、恢复默认
 - **视觉主题**：
   - 用量条三色（5h/7d/1m 颜色选择器）
   - 不透明度：侧栏+上栏 / 等高线 / 康威方块
@@ -70,14 +75,11 @@ DSH_CHECKOUT=<checkout> bash scripts/build.sh
 
 ```bash
 # 方式一：GitHub Release tarball（推荐）
-dsh plugin --profile web add https://github.com/<owner>/dsh-pnc-theme/releases/download/v0.1.2/dsh-external-dsh-pnc-theme-0.1.2.tgz
+dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.0/dsh-external-dsh-pnc-theme-0.2.0.tgz
 
 # 方式二：源码目录（lib/ 已提交，clone 后无需构建）
-git clone https://github.com/<owner>/dsh-pnc-theme
+git clone https://github.com/Morinissleeping/dsh-pnc-theme
 dsh plugin --profile web add ./dsh-pnc-theme
-
-# 方式三：npm 包（发布到 npm 后）
-dsh plugin --profile web add @dsh-external/dsh-pnc-theme
 ```
 
 注入器环境（可选，仅运行时热装配 + 重启后由 bundles 自动装配）：
@@ -106,4 +108,4 @@ gh repo edit <owner>/dsh-pnc-theme --add-topic dsh-plugin
 
 ## License
 
-BSD-3-Clause
+MIT
