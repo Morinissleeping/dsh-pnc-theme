@@ -9,11 +9,11 @@ button.p-xYUq_action,button._8_XoUG_action,button._8_XoUG_noteOpen,button._8_XoU
 /* v126：修复侧栏按钮阴影被容器 overflow:hidden 裁剪 */
 .qDHVXG_search,.qDHVXG_headerActions,.qDHVXG_sectionHeader{overflow:visible !important}
 /* v142：对话栏总长 X=$60——横条长度=已用%×限额/$60（5h满格0.2X、7d满格0.5X、1m满格X）；三色加深 */
-/* v0.2.14：配额条改为 flex 布局，左侧 matrix 加载指示（获取数据时显示、进度条刷新完成隐藏） */
-.pnc-quota{flex:none;padding:0;display:flex;align-items:center;gap:6px}
-.pnc-quota-matrix{width:12px;height:12px;flex:none;position:relative;color:#fff;display:none}
+/* v0.2.14：配额条左侧 matrix 加载指示（获取数据时显示、进度条刷新完成隐藏）；v0.2.15：matrix 绝对定位在 bar 外左侧 5px，不挤压条 */
+.pnc-quota{flex:none;padding:0;position:relative}
+.pnc-quota-matrix{position:absolute;top:50%;left:-17px;transform:translateY(-50%);width:12px;height:12px;color:#fff;display:none}
 .pnc-quota-matrix:after{content:"";position:absolute;top:0;left:0;width:2px;height:2px;background:currentColor;box-shadow:0 4px 0 currentColor,0 8px 0 currentColor,4px 0 0 currentColor,4px 8px 0 currentColor,8px 0 0 currentColor,8px 4px 0 currentColor,8px 8px 0 currentColor;animation:pnc-dot-blink 1s steps(1) infinite}
-.pnc-quota-bar{flex:1;position:relative;height:14px;background:transparent;border-top:1px solid rgba(255,255,255,0.14)}
+.pnc-quota-bar{position:relative;height:14px;background:transparent;border-top:1px solid rgba(255,255,255,0.14)}
 .pnc-quota-used{position:absolute;left:0;top:0;height:14px;width:0%;pointer-events:none;transition:width 0.6s ease}
 .pnc-quota-used-mo{background:var(--pnc-quota-mo,#1550B5);z-index:1}
 .pnc-quota-used-wk{background:var(--pnc-quota-wk,#3A7BF2);z-index:2}
