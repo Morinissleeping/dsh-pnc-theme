@@ -118,7 +118,7 @@ export function apply(ctx: Context): void {
     conwayScrollBlocks: 0.135,
     contourFlowMs: 180000,
     contourRefreshMs: 0,
-    glassAlpha: 0.5,
+    glassAlpha: 0.8,
   }
   function clampNum(v: unknown, fallback: number, min: number, max: number): number {
     const n = Number(v)
@@ -665,8 +665,9 @@ export function apply(ctx: Context): void {
       '</style>\n' +
       '<video id="pnc-bg-video" src="/pnc-bg.mp4" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>' +
       // v0.2.4：毛玻璃独立层——在视频/图片（z:-3）之上、所有其他元素之下；backdrop-filter 模糊其后的背景，opacity 由 --pnc-glass-alpha 控制
+      // v0.2.5：浓化——blur 24px + saturate(160%) 提色 + 淡白底色（教程标准：底色是毛玻璃质感的关键）
       '<div id="pnc-bg-glass" aria-hidden="true"></div>' +
-      '<style id="pnc-bg-glass-style">#pnc-bg-glass{position:fixed;inset:0;z-index:-2;pointer-events:none;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);opacity:var(--pnc-glass-alpha,0.5)}</style>\n' +
+      '<style id="pnc-bg-glass-style">#pnc-bg-glass{position:fixed;inset:0;z-index:-2;pointer-events:none;background:rgba(255,255,255,0.05);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);opacity:var(--pnc-glass-alpha,0.8)}</style>\n' +
       '<script>\n' + String(jsText) + '\n</script>'
     // v0.2.0：自定义背景图片存在时注入 img（替代视频）
     let bgImgHtml = ''
