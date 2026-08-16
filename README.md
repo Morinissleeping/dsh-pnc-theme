@@ -66,27 +66,42 @@ DSH_CHECKOUT=<checkout> bash scripts/build.sh
 
 ## 在其他 DSH 上安装
 
-1. 从 GitHub Release 下载 `dsh-external-dsh-pnc-theme-<version>.tgz` 并拷贝到目标机
-2. 注入器环境内安装（热装配 + 重启后由 bundles 自动装配）：
-   ```bash
-   # 解包到插件目录后
-   dev_install_package <插件目录>   # 或 dev_inject_plugin <插件目录> 仅运行时注入
-   ```
-3. 标准 Cordis 环境（无注入器）：
-   ```bash
-   npm install dsh-external-dsh-pnc-theme-<version>.tgz
-   # 在 profile/host 配置的 plugins 列表中加入 @dsh-external/dsh-pnc-theme
-   ```
-4. 打开 Web GUI → 设置 → OpenCode Go 配额 → 按教程填写 cookie + workspace_id → 保存
-5. 刷新页面查看主题（建议使用深色主题）
+官方标准方式（任一）：
+
+```bash
+# 方式一：GitHub Release tarball（推荐）
+dsh plugin --profile web add https://github.com/<owner>/dsh-pnc-theme/releases/download/v0.1.2/dsh-external-dsh-pnc-theme-0.1.2.tgz
+
+# 方式二：源码目录（lib/ 已提交，clone 后无需构建）
+git clone https://github.com/<owner>/dsh-pnc-theme
+dsh plugin --profile web add ./dsh-pnc-theme
+
+# 方式三：npm 包（发布到 npm 后）
+dsh plugin --profile web add @dsh-external/dsh-pnc-theme
+```
+
+注入器环境（可选，仅运行时热装配 + 重启后由 bundles 自动装配）：
+
+```bash
+dev_install_package <插件目录>   # 或 dev_inject_plugin <插件目录> 仅运行时注入
+```
+
+安装后：
+
+1. 重启 `dsh web`
+2. 打开 Web GUI → 设置 → OpenCode Go 配额 → 按教程填写 cookie + workspace_id → 保存
+3. 刷新页面查看主题（建议使用深色主题）
 
 ## 发布
+
+插件以 Bundle 分发（`package.json` 的 `dsh.bundle` 指向 `cordis.patch.yml`）。发布到公开 GitHub 仓库后，给仓库打上 `dsh-plugin` Topic——官方「社区插件」聚合页由 GitHub Topic 自动索引，无需向 DeepSeek 主仓库提交 PR：
 
 ```bash
 # 需要 git 仓库 + gh CLI 认证
 git add -A && git commit -m "v<version>"
 git tag v<version>
 gh release create v<version> dsh-external-dsh-pnc-theme-<version>.tgz
+gh repo edit <owner>/dsh-pnc-theme --add-topic dsh-plugin
 ```
 
 ## License
