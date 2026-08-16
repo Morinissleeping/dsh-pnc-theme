@@ -668,7 +668,7 @@ export function apply(ctx: Context): void {
       const img = findUploadedImage()
       if (img) {
         bgImgHtml = '<img id="pnc-bg-img" src="/pnc-bg-img" alt="" aria-hidden="true">\n' +
-          '<style id="pnc-bg-img-style">#pnc-bg-img{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-3;pointer-events:none;background:#0d1117}#pnc-bg-video{display:none !important}</style>\n'
+          '<style id="pnc-bg-img-style">#pnc-bg-img{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-3;pointer-events:none;background:#0d1117;opacity:var(--pnc-video-alpha,1)}#pnc-bg-video{display:none !important}</style>\n'
       }
     } catch (e) { /* ignore */ }
     const finalInject = bgImgHtml + injected

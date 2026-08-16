@@ -59,13 +59,11 @@ textarea.pnc-input{resize:vertical;min-height:72px}
 			const [mo, setMo] = React.useState(60);
 			const [theme, setTheme] = React.useState({ ...PNC_THEME_DEFAULTS });
 			const [bgInfo, setBgInfo] = React.useState(null);
-			const [bgUploading, setBgUploading] = React.useState(false);
 			const [imgInfo, setImgInfo] = React.useState(null);
-			const [imgUploading, setImgUploading] = React.useState(false);
+			const [bgUploading, setBgUploading] = React.useState(false);
 			const [status, setStatus] = React.useState({ text: "", cls: "" });
 			const [loading, setLoading] = React.useState(true);
 			const fileRef = React.useRef(null);
-			const imgRef = React.useRef(null);
 			React.useEffect(() => {
 				let alive = true;
 				fetch("/pnc-config").then((r) => r.json()).then((cfg) => {
@@ -100,21 +98,30 @@ textarea.pnc-input{resize:vertical;min-height:72px}
 			}, []);
 			const uploadBg = () => {
 				const f = fileRef.current && fileRef.current.files && fileRef.current.files[0];
-				if (!f) { setStatus({ text: "请先选择视频文件", cls: "err" }); return; }
+				if (!f) { setStatus({ text: "请先选择文件", cls: "err" }); return; }
+				const isImg = /^image\//.test(f.type);
+				const isVid = /^video\//.test(f.type);
+				if (!isImg && !isVid) { setStatus({ text: "仅支持视频（mp4/webm）或图片（PNG/JPEG/GIF/WebP）", cls: "err" }); return; }
+				const endpoint = isImg ? "/pnc-bg-img-upload" : "/pnc-bg-upload";
 				const reader = new FileReader();
 				setBgUploading(true);
 				setStatus({ text: "上传中…", cls: "" });
 				reader.onload = () => {
 					const base64 = String(reader.result).split(",")[1] || "";
-					fetch("/pnc-bg-upload", {
+					fetch(endpoint, {
 						method: "POST",
 						headers: { "content-type": "application/json" },
 						body: JSON.stringify({ base64, name: f.name })
 					}).then((r) => r.json()).then((res) => {
 						setBgUploading(false);
 						if (res && res.ok) {
-							setBgInfo({ custom: true, path: res.path, size: res.size });
-							setStatus({ text: "背景视频已上传（" + Math.round(res.size / 1048576 * 10) / 10 + " MB），刷新页面后生效", cls: "ok" });
+							if (isImg) {
+								setImgInfo({ custom: true, path: res.path, size: res.size, mime: res.mime });
+								setStatus({ text: "背景图片已上传（" + Math.round(res.size / 1024) + " KB），刷新页面后生效", cls: "ok" });
+							} else {
+								setBgInfo({ custom: true, path: res.path, size: res.size });
+								setStatus({ text: "背景视频已上传（" + Math.round(res.size / 1048576 * 10) / 10 + " MB），刷新页面后生效", cls: "ok" });
+							}
 						} else {
 							setStatus({ text: "上传失败：" + ((res && res.error) || "未知错误"), cls: "err" });
 						}
@@ -124,65 +131,36 @@ textarea.pnc-input{resize:vertical;min-height:72px}
 				reader.readAsDataURL(f);
 			};
 			const resetBg = () => {
-				if (!bgInfo || !bgInfo.custom) return;
+				if ((!bgInfo || !bgInfo.custom) && (!imgInfo || !imgInfo.custom)) return;
 				setBgUploading(true);
 				setStatus({ text: "恢复默认中…", cls: "" });
-				fetch("/pnc-bg-upload", {
-					method: "POST",
-					headers: { "content-type": "application/json" },
-					body: JSON.stringify({ base64: "" })
-				}).then((r) => r.json()).then((res) => {
+				Promise.all([
+					fetch("/pnc-bg-img-upload", {
+						method: "POST",
+						headers: { "content-type": "application/json" },
+						body: JSON.stringify({ base64: "" })
+					}).then((r) => r.json()),
+					fetch("/pnc-bg-upload", {
+						method: "POST",
+						headers: { "content-type": "application/json" },
+						body: JSON.stringify({ base64: "" })
+					}).then((r) => r.json())
+				]).then(([ri, rv]) => {
 					setBgUploading(false);
-					if (res && res.ok) {
+					if (ri && ri.ok && rv && rv.ok) {
 						setBgInfo({ custom: false, path: "package", size: 0 });
-						setStatus({ text: "已恢复默认背景视频，刷新页面后生效", cls: "ok" });
+						setImgInfo({ custom: false, path: "none", size: 0, mime: null });
+						setStatus({ text: "已恢复默认背景，刷新页面后生效", cls: "ok" });
 					} else {
 						setStatus({ text: "恢复失败", cls: "err" });
 					}
 				}).catch(() => { setBgUploading(false); setStatus({ text: "恢复失败：网络错误", cls: "err" }); });
 			};
-			const uploadImg = () => {
-				const f = imgRef.current && imgRef.current.files && imgRef.current.files[0];
-				if (!f) { setStatus({ text: "请先选择图片文件", cls: "err" }); return; }
-				const reader = new FileReader();
-				setImgUploading(true);
-				setStatus({ text: "上传中…", cls: "" });
-				reader.onload = () => {
-					const base64 = String(reader.result).split(",")[1] || "";
-					fetch("/pnc-bg-img-upload", {
-						method: "POST",
-						headers: { "content-type": "application/json" },
-						body: JSON.stringify({ base64, name: f.name })
-					}).then((r) => r.json()).then((res) => {
-						setImgUploading(false);
-						if (res && res.ok) {
-							setImgInfo({ custom: true, path: res.path, size: res.size, mime: res.mime });
-							setStatus({ text: "背景图片已上传（" + Math.round(res.size / 1024) + " KB），刷新页面后生效", cls: "ok" });
-						} else {
-							setStatus({ text: "上传失败：" + ((res && res.error) || "未知错误"), cls: "err" });
-						}
-					}).catch(() => { setImgUploading(false); setStatus({ text: "上传失败：网络错误", cls: "err" }); });
-				};
-				reader.onerror = () => { setImgUploading(false); setStatus({ text: "读取文件失败", cls: "err" }); };
-				reader.readAsDataURL(f);
-			};
-			const resetImg = () => {
-				if (!imgInfo || !imgInfo.custom) return;
-				setImgUploading(true);
-				setStatus({ text: "恢复默认中…", cls: "" });
-				fetch("/pnc-bg-img-upload", {
-					method: "POST",
-					headers: { "content-type": "application/json" },
-					body: JSON.stringify({ base64: "" })
-				}).then((r) => r.json()).then((res) => {
-					setImgUploading(false);
-					if (res && res.ok) {
-						setImgInfo({ custom: false, path: "none", size: 0, mime: null });
-						setStatus({ text: "已恢复默认（背景视频），刷新页面后生效", cls: "ok" });
-					} else {
-						setStatus({ text: "恢复失败", cls: "err" });
-					}
-				}).catch(() => { setImgUploading(false); setStatus({ text: "恢复失败：网络错误", cls: "err" }); });
+			const bgDesc = () => {
+				if (imgInfo && imgInfo.custom) return "当前：自定义图片（" + Math.round(imgInfo.size / 1024) + " KB" + (imgInfo.mime ? "， " + imgInfo.mime : "") + "，优先于视频）";
+				if (bgInfo && bgInfo.custom) return "当前：自定义视频（" + Math.round(bgInfo.size / 1048576 * 10) / 10 + " MB）";
+				if (bgInfo) return "当前：包内默认视频";
+				return "查询当前背景状态…";
 			};
 			const save = () => {
 				const c = cookie.trim();
@@ -283,23 +261,15 @@ textarea.pnc-input{resize:vertical;min-height:72px}
 					React.createElement("div", { className: "pnc-field" },
 						React.createElement("label", null, "1m 限额"),
 						React.createElement("input", { className: "pnc-input", type: "number", min: 1, step: 1, value: mo, onChange: (e) => setMo(e.target.value) }))),
-				React.createElement("h4", null, "背景视频"),
-				React.createElement("p", { className: "pnc-desc" }, "上传自定义 mp4 替代包内默认；上传后刷新页面生效。"),
+				React.createElement("h4", null, "背景"),
+				React.createElement("p", { className: "pnc-desc" }, "上传视频（mp4/webm）或图片（PNG/JPEG/GIF/WebP）作为页面背景；图片存在时优先于视频。上传后刷新页面生效。"),
 				React.createElement("div", { className: "pnc-file-row" },
 					React.createElement("div", { className: "pnc-file" },
-						React.createElement("input", { type: "file", accept: "video/mp4,video/webm", ref: fileRef, disabled: bgUploading })),
+						React.createElement("input", { type: "file", accept: "video/mp4,video/webm,image/png,image/jpeg,image/webp,image/gif", ref: fileRef, disabled: bgUploading })),
 					React.createElement("button", { className: "pnc-btn", disabled: bgUploading, onClick: uploadBg }, "上传"),
-					bgInfo && bgInfo.custom ? React.createElement("button", { className: "pnc-btn ghost", disabled: bgUploading, onClick: resetBg }, "恢复默认") : null),
-				React.createElement("p", { className: "pnc-desc" }, bgInfo ? (bgInfo.custom ? "当前：自定义视频（" + Math.round(bgInfo.size / 1048576 * 10) / 10 + " MB）" : "当前：包内默认视频") : "查询当前视频状态…"),
-				rangeRow("背景视频不透明度", "videoAlpha", 0, 1, 0.05, (v) => Math.round(v * 100) + "%"),
-				React.createElement("h4", null, "背景图片"),
-				React.createElement("p", { className: "pnc-desc" }, "上传 PNG/JPEG/GIF/WebP 作为页面背景（存在时替代背景视频）；上传后刷新页面生效。"),
-				React.createElement("div", { className: "pnc-file-row" },
-					React.createElement("div", { className: "pnc-file" },
-						React.createElement("input", { type: "file", accept: "image/png,image/jpeg,image/webp,image/gif", ref: imgRef, disabled: imgUploading })),
-					React.createElement("button", { className: "pnc-btn", disabled: imgUploading, onClick: uploadImg }, "上传"),
-					imgInfo && imgInfo.custom ? React.createElement("button", { className: "pnc-btn ghost", disabled: imgUploading, onClick: resetImg }, "恢复默认") : null),
-				React.createElement("p", { className: "pnc-desc" }, imgInfo ? (imgInfo.custom ? "当前：自定义图片（" + Math.round(imgInfo.size / 1024) + " KB" + (imgInfo.mime ? "， " + imgInfo.mime : "") + "）" : "当前：未设置（使用背景视频）") : "查询当前图片状态…"),
+					((bgInfo && bgInfo.custom) || (imgInfo && imgInfo.custom)) ? React.createElement("button", { className: "pnc-btn ghost", disabled: bgUploading, onClick: resetBg }, "恢复默认") : null),
+				React.createElement("p", { className: "pnc-desc" }, bgDesc()),
+				rangeRow("背景不透明度", "videoAlpha", 0, 1, 0.05, (v) => Math.round(v * 100) + "%"),
 				React.createElement("h4", null, "视觉主题"),
 				React.createElement("div", { className: "pnc-sub" }, "用量条颜色"),
 				colorRow("用量条 5h", "quotaMo"),

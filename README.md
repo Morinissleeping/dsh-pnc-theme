@@ -7,7 +7,7 @@
 ## 功能
 
 - **背景视频**：全屏循环播放背景视频（深色战争画面），`?pnc-novid=1` 可禁用；可上传自定义 mp4 替代包内默认
-- **背景图片**：上传 PNG/JPEG/GIF/WebP 作为页面背景（存在时替代背景视频），可随时恢复默认
+- **背景图片**：上传 PNG/JPEG/GIF/WebP 作为页面背景（存在时优先于视频），可随时恢复默认；设置页中视频/图片合并为「背景」一个入口
 - **等高线背景**：左栏/上栏深色底 + marching squares 生成的连续等高线流动（三档密度随 LLM 活跃度切换，密度/流动周期/刷新间隔可配置）
 - **康威生命棋盘**：中央聊天区背景的生命游戏棋盘，播种密度由 LLM 工作状态驱动（活跃时密集、空闲时稀疏）
 - **LLM 活跃度评分接口**：`/pnc-activity.json` —— 监听 `session/event`（assistant/chunk、tool/call、tool/result 等）实时量化 LLM 工作状态（0-100，每秒衰减 6%）
@@ -48,8 +48,7 @@ v0.1.1 起为**自包含可移植版**：视频、等高线素材、配额抓取
 打开 Web GUI → 侧栏底部 设置 → 「OpenCode Go 配额」：
 
 - **凭据与限额**：Cookie / Workspace ID / 5h·7d·1m 金额限额（含配置教程）
-- **背景视频**：上传自定义 mp4（无大小上限）、恢复默认、背景视频不透明度
-- **背景图片**：上传 PNG/JPEG/GIF/WebP（存在时替代背景视频）、恢复默认
+- **背景**（视频/图片合并入口）：上传 mp4/webm 或 PNG/JPEG/GIF/WebP（图片存在时优先于视频）、恢复默认、背景不透明度（视频与图片通用）
 - **视觉主题**：
   - 用量条三色（5h/7d/1m 颜色选择器）
   - 不透明度：侧栏+上栏 / 等高线 / 康威方块
@@ -75,7 +74,7 @@ DSH_CHECKOUT=<checkout> bash scripts/build.sh
 
 ```bash
 # 方式一：GitHub Release tarball（推荐）
-dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.0/dsh-external-dsh-pnc-theme-0.2.0.tgz
+dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.1/dsh-external-dsh-pnc-theme-0.2.1.tgz
 
 # 方式二：源码目录（lib/ 已提交，clone 后无需构建）
 git clone https://github.com/Morinissleeping/dsh-pnc-theme
