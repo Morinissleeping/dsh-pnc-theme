@@ -1,12 +1,15 @@
 # @dsh-external/dsh-pnc-theme
 
-《少女前线：云图计划》(Girls' Frontline: Neural Cloud, PNC) 风格的 DSH Web GUI 主题插件。
+受《少女前线：云图计划》(Girls' Frontline: Neural Cloud, PNC) 风格启发的 DSH Web GUI 主题插件。
+<img width="1904" height="911" alt="屏幕截图 2026-08-16 111532" src="https://github.com/user-attachments/assets/0d5ca23b-e24e-4ee9-9265-95aedb4b1272" />
+附上Opencode Go用量指示条。
+MIT，自己改造
+这个仓库是自用的——所以可能不会更新
 
-自包含可移植版：背景视频、等高线、康威棋盘、配额条、LLM 活跃度指示全部内嵌，开箱即用，凭据不入包。
-
+下面是LLM写的
 ## 功能
 
-- **背景视频**：全屏循环播放背景视频（深色战争画面），`?pnc-novid=1` 可禁用；可上传自定义 mp4 替代包内默认
+- **背景视频**：全屏循环播放背景视频，`?pnc-novid=1` 可禁用；可上传自定义 mp4 替代包内默认
 - **背景图片**：上传 PNG/JPEG/GIF/WebP 作为页面背景（存在时优先于视频），可随时恢复默认；设置页中视频/图片合并为「背景」一个入口
 - **等高线背景**：左栏/上栏深色底 + marching squares 生成的连续等高线流动（三档密度随 LLM 活跃度切换，密度/流动周期/刷新间隔可配置）
 - **康威生命棋盘**：中央聊天区背景的生命游戏棋盘，播种密度由 LLM 工作状态驱动（活跃时密集、空闲时稀疏）
