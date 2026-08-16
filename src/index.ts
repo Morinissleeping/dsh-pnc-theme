@@ -274,12 +274,13 @@ export function apply(ctx: Context): void {
     quotaError = lastErr || 'fetch failed'
     return null
   }
+  // v0.2.11：配额自动刷新提速——成功缓存 60s，失败 30s 后快速重试（原来 3 分钟且失败会停住）
   async function getQuota(): Promise<Record<string, any> | null> {
     const now = Date.now()
-    if (quotaCache && now - quotaCacheTime < 180000) return quotaCache
+    if (quotaCache && now - quotaCacheTime < 60000) return quotaCache
     const q = await fetchQuotaLive()
     quotaCache = q
-    quotaCacheTime = now
+    quotaCacheTime = q ? now : now - 30000
     return q
   }
   function scoreEvent(type: string | undefined): void {
@@ -649,7 +650,7 @@ export function apply(ctx: Context): void {
     },
   }))
   if (timer) {
-    disposers.push(timer.interval(() => { getQuota().catch(() => {}) }, 180000))
+    disposers.push(timer.interval(() => { getQuota().catch(() => {}) }, 60000))
   }
   disposers.push(webServer.tapIndex((html: string) => {
     const svgData = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23.16 17.04"><path fill="#8a94a3" d="' + fishPath + '"/></svg>')

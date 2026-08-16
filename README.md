@@ -21,7 +21,7 @@
 | 路径 | 说明 |
 |---|---|
 | `/pnc-config` | GET/POST 读写配置（cookie/workspace_id/limits/theme），POST 后立即清缓存刷新 |
-| `/pnc-quota-data.json` | 配额数据（live-fetch，3 分钟缓存），附带 limits |
+| `/pnc-quota-data.json` | 配额数据（live-fetch，60 秒缓存，失败 30 秒快速重试），附带 limits |
 | `/pnc-activity.json` | LLM 工作状态评分（score/level/events） |
 | `/pnc-bg.mp4` | 背景视频（Range 支持） |
 | `/pnc-bg-info` | 背景视频当前状态（自定义/包内默认/大小） |
@@ -75,7 +75,7 @@ DSH_CHECKOUT=<checkout> bash scripts/build.sh
 
 ```bash
 # 方式一：GitHub Release tarball（推荐）
-dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.10/dsh-external-dsh-pnc-theme-0.2.10.tgz
+dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.11/dsh-external-dsh-pnc-theme-0.2.11.tgz
 
 # 方式二：源码目录（lib/ 已提交，clone 后无需构建）
 git clone https://github.com/Morinissleeping/dsh-pnc-theme

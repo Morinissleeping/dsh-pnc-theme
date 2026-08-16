@@ -383,7 +383,8 @@
     try {
       var now = Date.now();
       var cache = window.__pncQuotaCache;
-      if (cache && now - cache.t < 180000) { applyQuota(cache.q, instant); return; }
+      // v0.2.11：自动刷新提速——前端缓存 60s（原来 3 分钟）
+      if (cache && now - cache.t < 60000) { applyQuota(cache.q, instant); return; }
       fetch('/pnc-quota-data.json').then(function (r) { return r.json(); }).then(function (q) {
         window.__pncQuotaCache = { t: Date.now(), q: q };
         applyQuota(q, instant);
@@ -543,7 +544,7 @@
   clipLogo();
   positionGlass();
   updateQuota(false);
-  setInterval(function () { updateQuota(false); }, 180000);
+  setInterval(function () { updateQuota(false); }, 60000);
   if (window.MutationObserver) {
     var mo = new MutationObserver(function () {
       var sb = document.querySelector('.pI_x6G_sidebarCol');
