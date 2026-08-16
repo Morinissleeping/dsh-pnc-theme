@@ -48,7 +48,7 @@ v0.1.1 起为**自包含可移植版**：视频、等高线素材、配额抓取
 打开 Web GUI → 侧栏底部 设置 → 「OpenCode Go 配额」：
 
 - **凭据与限额**：Cookie / Workspace ID / 5h·7d·1m 金额限额（含配置教程）
-- **背景**（视频/图片合并入口）：上传 mp4/webm 或 PNG/JPEG/GIF/WebP（图片存在时优先于视频）、恢复默认、背景不透明度（视频与图片通用）
+- **背景**（视频/图片合并入口）：上传 mp4/webm 或 PNG/JPEG/GIF/WebP（图片存在时优先于视频）、一键重置回包内默认视频、背景不透明度（视频与图片通用）
 - **视觉主题**：
   - 用量条三色（5h/7d/1m 颜色选择器）
   - 不透明度：侧栏+上栏 / 等高线 / 康威方块
@@ -74,7 +74,7 @@ DSH_CHECKOUT=<checkout> bash scripts/build.sh
 
 ```bash
 # 方式一：GitHub Release tarball（推荐）
-dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.1/dsh-external-dsh-pnc-theme-0.2.1.tgz
+dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.2/dsh-external-dsh-pnc-theme-0.2.2.tgz
 
 # 方式二：源码目录（lib/ 已提交，clone 后无需构建）
 git clone https://github.com/Morinissleeping/dsh-pnc-theme
