@@ -75,7 +75,7 @@ DSH_CHECKOUT=<checkout> bash scripts/build.sh
 
 ```bash
 # 方式一：GitHub Release tarball（推荐）
-dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.16/dsh-external-dsh-pnc-theme-0.2.16.tgz
+dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.17/dsh-external-dsh-pnc-theme-0.2.17.tgz
 
 # 方式二：源码目录（lib/ 已提交，clone 后无需构建）
 git clone https://github.com/Morinissleeping/dsh-pnc-theme
