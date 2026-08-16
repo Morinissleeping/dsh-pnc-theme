@@ -11,7 +11,7 @@
 - **等高线背景**：左栏/上栏深色底 + marching squares 生成的连续等高线流动（三档密度随 LLM 活跃度切换，密度/流动周期/刷新间隔可配置）
 - **康威生命棋盘**：中央聊天区背景的生命游戏棋盘，播种密度由 LLM 工作状态驱动（活跃时密集、空闲时稀疏）
 - **LLM 活跃度评分接口**：`/pnc-activity.json` —— 监听 `session/event`（assistant/chunk、tool/call、tool/result 等）实时量化 LLM 工作状态（0-100，每秒衰减 6%）
-- **配额条**：对话栏底部用量条——三条横条（5h/7d/1m）长度 = 已用% × 限额/$60，限额与三色可在设置页调整；倒计时标签显示各窗口重置时间；左侧 5px 外 matrix 指示灯在获取数据时显示、进度条刷新完成后隐藏（不挤压条宽）
+- **配额条**：对话栏底部用量条——三条横条（5h/7d/1m）长度 = 已用% × 限额/$60，限额与三色可在设置页调整；倒计时标签显示各窗口重置时间；左侧 5px 外 matrix 指示灯在获取数据时显示、进度条刷新完成后隐藏（不挤压条宽），动画与命令块运行中（`_matrix_10orb_4`）完全一致
 - **状态指示灯**：命令块运行中显示白色 matrix 矩阵；询问=黄色方块屏闪、报错=红色方块常亮、完成=蓝色方块呼吸
 - **设置页**：DSH 原生设置 → 「OpenCode Go 配额」——凭据/限额/背景视频上传/视觉主题全套配置
 - **浅色主题提示**：检测到浅色主题时提示不适配（建议切换深色）
@@ -75,7 +75,7 @@ DSH_CHECKOUT=<checkout> bash scripts/build.sh
 
 ```bash
 # 方式一：GitHub Release tarball（推荐）
-dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.15/dsh-external-dsh-pnc-theme-0.2.15.tgz
+dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.16/dsh-external-dsh-pnc-theme-0.2.16.tgz
 
 # 方式二：源码目录（lib/ 已提交，clone 后无需构建）
 git clone https://github.com/Morinissleeping/dsh-pnc-theme
