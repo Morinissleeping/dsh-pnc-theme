@@ -31,7 +31,12 @@ function resolveVideoPath(): string {
 }
 const CREDS_PATH = process.env.PNC_CREDS_PATH || join(homedir(), '.dsh', 'pnc_creds.json')
 const FETCH_SCRIPT = fileURLToPath(new URL('./assets/fetch_quota.py', import.meta.url))
-const PYTHON = process.env.PNC_PYTHON || (existsSync('C:/Program Files/Python312/python.exe') ? 'C:/Program Files/Python312/python.exe' : 'python')
+// v162：python 探测跨平台——env → Windows 常见路径 → python3 → python
+function detectPython(): string {
+  if (process.env.PNC_PYTHON) return process.env.PNC_PYTHON
+  if (process.platform === 'win32' && existsSync('C:/Program Files/Python312/python.exe')) return 'C:/Program Files/Python312/python.exe'
+  return 'python3'
+}
 const FISH_FILE = fileURLToPath(new URL('./assets/pnc_fish_path.txt', import.meta.url))
 const CSS_FILE = fileURLToPath(new URL('./assets/pnc_inject.css', import.meta.url))
 const JS_FILE = fileURLToPath(new URL('./assets/pnc_inject.js', import.meta.url))
@@ -190,51 +195,57 @@ export function apply(ctx: Context): void {
     return { rolling, weekly, monthly }
   }
   async function fetchQuotaLive(): Promise<Record<string, any> | null> {
-    try {
-      if (subprocess === undefined) {
-        quotaError = 'no subprocess service'
-        return null
-      }
-      const proc = subprocess.spawn({
-        argv: [PYTHON, FETCH_SCRIPT, CREDS_PATH],
-        cwd: process.env.PNC_CWD || undefined,
-        stdio: { stdin: 'ignore', stdout: { maxBytes: 2 * 1024 * 1024 }, stderr: { maxBytes: 65536 } },
-        graceMs: 40000,
-      })
-      const outcome = await proc.done
-      let out = ''
-      let err = ''
+    // v162：python 候选列表——detectPython 优先，非 Windows 再兜底 python
+    const candidates = detectPython() === 'python3' ? ['python3', 'python'] : [detectPython()]
+    let lastErr = ''
+    for (const py of candidates) {
       try {
-        const rd = proc.collected && proc.collected.stdout ? proc.collected.stdout.readFrom(0) : null
-        out = rd && rd.text ? rd.text : ''
-        const re = proc.collected && proc.collected.stderr ? proc.collected.stderr.readFrom(0) : null
-        err = re && re.text ? re.text : ''
-      } catch (e) { /* ignore */ }
-      if (!out) {
-        quotaError = 'python empty exit=' + (outcome ? outcome.exitCode : '?') + ' err=' + err.slice(0, 160)
-        return null
+        if (subprocess === undefined) {
+          quotaError = 'no subprocess service'
+          return null
+        }
+        const proc = subprocess.spawn({
+          argv: [py, FETCH_SCRIPT, CREDS_PATH],
+          cwd: process.env.PNC_CWD || undefined,
+          stdio: { stdin: 'ignore', stdout: { maxBytes: 2 * 1024 * 1024 }, stderr: { maxBytes: 65536 } },
+          graceMs: 40000,
+        })
+        const outcome = await proc.done
+        let out = ''
+        let err = ''
+        try {
+          const rd = proc.collected && proc.collected.stdout ? proc.collected.stdout.readFrom(0) : null
+          out = rd && rd.text ? rd.text : ''
+          const re = proc.collected && proc.collected.stderr ? proc.collected.stderr.readFrom(0) : null
+          err = re && re.text ? re.text : ''
+        } catch (e) { /* ignore */ }
+        if (!out) {
+          lastErr = 'python empty exit=' + (outcome ? outcome.exitCode : '?') + ' err=' + err.slice(0, 160)
+          continue
+        }
+        if (out.indexOf('OpenAuth') !== -1 && out.indexOf('usagePercent') === -1) {
+          quotaError = 'cookie expired (OpenAuth page)'
+          return null
+        }
+        const parsed = parseQuotaHtml(out)
+        if (!parsed) {
+          lastErr = 'quota fields not found in page (len=' + out.length + ')'
+          continue
+        }
+        quotaError = null
+        return {
+          rolling: parsed.rolling,
+          weekly: parsed.weekly,
+          monthly: parsed.monthly,
+          fetchedAt: new Date().toISOString(),
+          source: 'live-fetch',
+          errorMessage: null,
+        }
+      } catch (e) {
+        lastErr = 'fetch failed: ' + String(e instanceof Error ? e.message : e)
       }
-      if (out.indexOf('OpenAuth') !== -1 && out.indexOf('usagePercent') === -1) {
-        quotaError = 'cookie expired (OpenAuth page)'
-        return null
-      }
-      const parsed = parseQuotaHtml(out)
-      if (!parsed) {
-        quotaError = 'quota fields not found in page (len=' + out.length + ')'
-        return null
-      }
-      quotaError = null
-      return {
-        rolling: parsed.rolling,
-        weekly: parsed.weekly,
-        monthly: parsed.monthly,
-        fetchedAt: new Date().toISOString(),
-        source: 'live-fetch',
-        errorMessage: null,
-      }
-    } catch (e) {
-      quotaError = 'fetch failed: ' + String(e instanceof Error ? e.message : e)
     }
+    quotaError = lastErr || 'fetch failed'
     return null
   }
   async function getQuota(): Promise<Record<string, any> | null> {

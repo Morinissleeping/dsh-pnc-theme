@@ -77,6 +77,26 @@
     var n = Number(v);
     return (isFinite(n) && n >= lo && n <= hi) ? n : fb;
   }
+  // v164：deepseek logo（::after）动态裁切——按 logo 相对卡片实际超出量计算 clip-path，
+  // 等价于原 overflow:hidden 效果，但 card 保持 overflow:visible（模型选择器/命令块/用量条安全）
+  function clipLogo() {
+    var card = document.querySelector('.uV2eYG_card');
+    if (!card) return;
+    var cr = card.getBoundingClientRect();
+    // logo 定位：right:-126px; bottom:-110px; 420x308
+    var afterRight = cr.right + 126;
+    var afterBottom = cr.bottom + 110;
+    var afterLeft = afterRight - 420;
+    var afterTop = afterBottom - 308;
+    var topOver = Math.max(0, cr.top - afterTop);
+    var rightOver = Math.max(0, afterRight - cr.right);
+    var bottomOver = Math.max(0, afterBottom - cr.bottom);
+    var leftOver = Math.max(0, cr.left - afterLeft);
+    var inset = 'inset(' + topOver + 'px ' + rightOver + 'px ' + bottomOver + 'px ' + leftOver + 'px)';
+    if (card.style.getPropertyValue('--pnc-logo-clip') !== inset) {
+      card.style.setProperty('--pnc-logo-clip', inset);
+    }
+  }
   // 页面加载时拉取 theme 配置（凭据文件里的 theme 字段），未配置用默认
   function loadTheme() {
     fetch('/pnc-config').then(function (r) { return r.json(); }).then(function (cfg) {
@@ -496,6 +516,7 @@
   pollActivity();
   loadTheme();
   checkLightTheme();
+  clipLogo();
   updateQuota(false);
   setInterval(function () { updateQuota(false); }, 180000);
   if (window.MutationObserver) {
@@ -507,10 +528,11 @@
       ensureConway();
       ensureQuota();
       ensureAlign();
+      clipLogo();
     });
     mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
   }
-  window.addEventListener('resize', function () { ensureQuota(); ensureAlign(); ensureConway(); });
+  window.addEventListener('resize', function () { ensureQuota(); ensureAlign(); ensureConway(); clipLogo(); });
   var SELECTOR = '.hHd-Xa_newSession,.uV2eYG_primary,.nL4_yW_sessionLogButton,.uV2eYG_add,.qDHVXG_searchButton,.pXSMma_workspace,.qDHVXG_iconButton,.VOzbGW_trigger,.hHd-Xa_iconButton,.Nqubda_badge';
   document.addEventListener('pointerdown', function (e) {
     var el = e.target && e.target.closest ? e.target.closest(SELECTOR) : null;

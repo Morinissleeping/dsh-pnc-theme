@@ -82,8 +82,11 @@ body[data-ds-dark-theme]{--dsw-alias-bg-base:rgba(21,21,23,0);--dsw-alias-bg-lay
 .hHd-Xa_newSession::before{content:"";position:absolute;left:0;top:54%;transform:translateY(-50%);width:4px;height:21px;background:#fff;pointer-events:none;z-index:1}
 .hHd-Xa_newSession::after{content:"";position:absolute;left:0;top:0;bottom:0;width:100%;pointer-events:none;z-index:1;background-image:radial-gradient(rgba(255,255,255,0.2) 0.8px, transparent 1.4px);background-size:5px 5px;background-position:2px 2px;-webkit-mask-image:linear-gradient(26.565deg, #000 0%, #000 35%, transparent 55%);mask-image:linear-gradient(26.565deg, #000 0%, #000 35%, transparent 55%)}
 .hHd-Xa_newSession svg{position:absolute !important;right:-24px !important;bottom:-24px !important;width:80px !important;height:80px !important;opacity:0.5 !important;z-index:-1 !important}
-.uV2eYG_card{position:relative;isolation:isolate;overflow:hidden !important}
-.uV2eYG_card::after{content:"";position:absolute;right:-126px;bottom:-92.4px;width:420px;height:308px;pointer-events:none;z-index:-1;background:url("__PNC_FISH_SVG__") center/contain no-repeat;opacity:0.5}
+.uV2eYG_card{position:relative;isolation:isolate;overflow:visible !important}
+/* v163/v164：deepseek logo（::after）被裁切是设计意图——card 保持 overflow:visible
+   （模型选择器/命令块/用量条安全），logo 裁切由 JS 动态计算 clip-path（--pnc-logo-clip） */
+.uV2eYG_card{position:relative;isolation:isolate;overflow:visible !important}
+.uV2eYG_card::after{content:"";position:absolute;right:-126px;bottom:-110px;width:420px;height:308px;pointer-events:none;z-index:-1;background:url("__PNC_FISH_SVG__") center/contain no-repeat;opacity:0.5;clip-path:var(--pnc-logo-clip, inset(0 126px 110px 0))}
 ._7yHdaG_dock{width:calc(var(--dsh-composer-card-max-width) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset)) !important;margin-left:auto !important;margin-right:auto !important}
 .uV2eYG_primary{transform:none !important}
 .Nqubda_badge{background:transparent !important;color:rgb(207,211,214) !important;position:relative;overflow:hidden}
