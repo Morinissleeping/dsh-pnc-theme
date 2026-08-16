@@ -117,11 +117,12 @@ textarea.pnc-input{resize:vertical;min-height:72px}
 						if (res && res.ok) {
 							if (isImg) {
 								setImgInfo({ custom: true, path: res.path, size: res.size, mime: res.mime });
-								setStatus({ text: "背景图片已上传（" + Math.round(res.size / 1024) + " KB），刷新页面后生效", cls: "ok" });
+								setStatus({ text: "背景图片已上传（" + Math.round(res.size / 1024) + " KB），页面即将刷新生效…", cls: "ok" });
 							} else {
 								setBgInfo({ custom: true, path: res.path, size: res.size });
-								setStatus({ text: "背景视频已上传（" + Math.round(res.size / 1048576 * 10) / 10 + " MB），刷新页面后生效", cls: "ok" });
+								setStatus({ text: "背景视频已上传（" + Math.round(res.size / 1048576 * 10) / 10 + " MB），页面即将刷新生效…", cls: "ok" });
 							}
+							setTimeout(function () { window.location.reload(); }, 800);
 						} else {
 							setStatus({ text: "上传失败：" + ((res && res.error) || "未知错误"), cls: "err" });
 						}
@@ -153,7 +154,8 @@ textarea.pnc-input{resize:vertical;min-height:72px}
 					if (ri && ri.ok && rv && rv.ok) {
 						setBgInfo({ custom: false, path: "package", size: 0 });
 						setImgInfo({ custom: false, path: "none", size: 0, mime: null });
-						setStatus({ text: "已重置为默认背景（包内视频），刷新页面后生效", cls: "ok" });
+						setStatus({ text: "已重置为默认背景，页面即将刷新生效…", cls: "ok" });
+						setTimeout(function () { window.location.reload(); }, 800);
 					} else {
 						setStatus({ text: "重置失败", cls: "err" });
 					}
