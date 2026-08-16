@@ -1,30 +1,36 @@
 # @dsh-external/dsh-pnc-theme
 
-《少女前线：云图计划》(PNC) 风格 DSH Web GUI 主题插件。
+《少女前线：云图计划》(Girls' Frontline: Neural Cloud, PNC) 风格的 DSH Web GUI 主题插件。
+
+自包含可移植版：背景视频、等高线、康威棋盘、配额条、LLM 活跃度指示全部内嵌，开箱即用，凭据不入包。
 
 ## 功能
 
-- **背景视频**：全屏循环播放背景视频（深色战争画面），`?pnc-novid=1` 可禁用
-- **等高线背景**：左栏/上栏黑色底 + marching squares 生成的连续等高线流动（三档密度随 LLM 活跃度切换）
+- **背景视频**：全屏循环播放背景视频（深色战争画面），`?pnc-novid=1` 可禁用；可上传自定义 mp4 替代包内默认
+- **等高线背景**：左栏/上栏深色底 + marching squares 生成的连续等高线流动（三档密度随 LLM 活跃度切换，密度/流动周期/刷新间隔可配置）
 - **康威生命棋盘**：中央聊天区背景的生命游戏棋盘，播种密度由 LLM 工作状态驱动（活跃时密集、空闲时稀疏）
 - **LLM 活跃度评分接口**：`/pnc-activity.json` —— 监听 `session/event`（assistant/chunk、tool/call、tool/result 等）实时量化 LLM 工作状态（0-100，每秒衰减 6%）
-- **配额条**：对话栏底部用量条——三条横条（5h/7d/1m）长度 = 已用% × 限额/$60，限额可在配置面板调整；倒计时标签显示各窗口重置时间
-- **配置面板**：页面会话日志按钮左侧的 ⚙ 按钮（新对话页浮动右下角），可配置 Cookie / Workspace ID / 三个窗口金额限额
+- **配额条**：对话栏底部用量条——三条横条（5h/7d/1m）长度 = 已用% × 限额/$60，限额与三色可在设置页调整；倒计时标签显示各窗口重置时间
+- **状态指示灯**：命令块运行中显示白色 matrix 矩阵；询问=黄色方块屏闪、报错=红色方块常亮、完成=蓝色方块呼吸
+- **设置页**：DSH 原生设置 → 「OpenCode Go 配额」——凭据/限额/背景视频上传/视觉主题全套配置
+- **浅色主题提示**：检测到浅色主题时提示不适配（建议切换深色）
 
 ## 端点
 
 | 路径 | 说明 |
 |---|---|
-| `/pnc-config` | GET/POST 读写配置（cookie/workspace_id/limits），POST 后立即清缓存刷新 |
+| `/pnc-config` | GET/POST 读写配置（cookie/workspace_id/limits/theme），POST 后立即清缓存刷新 |
 | `/pnc-quota-data.json` | 配额数据（live-fetch，3 分钟缓存），附带 limits |
 | `/pnc-activity.json` | LLM 工作状态评分（score/level/events） |
 | `/pnc-bg.mp4` | 背景视频（Range 支持） |
+| `/pnc-bg-info` | 背景视频当前状态（自定义/包内默认/大小） |
+| `/pnc-bg-upload` | POST base64 上传自定义背景视频（空 base64 = 恢复默认） |
 
 ## 运行时依赖（全部内嵌，开箱即用）
 
 v0.1.1 起为**自包含可移植版**：视频、等高线素材、配额抓取脚本、注入 CSS/JS 全部打进 `lib/assets/`，不依赖任何外部路径。
 
-凭据（cookie/workspace_id/limits）为私有数据**不打包**，默认读写 `~/.dsh/pnc_creds.json`（可通过配置面板 ⚙ 写入），可用环境变量覆盖：
+凭据（cookie/workspace_id/limits）为私有数据**不打包**，默认读写 `~/.dsh/pnc_creds.json`（可通过设置页写入），可用环境变量覆盖：
 
 | 环境变量 | 默认值 | 用途 |
 |---|---|---|
@@ -32,6 +38,17 @@ v0.1.1 起为**自包含可移植版**：视频、等高线素材、配额抓取
 | `PNC_BG_VIDEO` | 包内 `lib/assets/bg.mp4` | 背景视频路径（可指向任意本地 mp4，避免打包大视频） |
 | `PNC_PYTHON` | `python`（优先 `C:/Program Files/Python312/python.exe` 若存在） | 配额抓取脚本解释器 |
 | `PNC_CWD` | 无 | 抓取脚本工作目录（一般无需设置） |
+
+## 设置页配置项
+
+打开 Web GUI → 侧栏底部 设置 → 「OpenCode Go 配额」：
+
+- **凭据与限额**：Cookie / Workspace ID / 5h·7d·1m 金额限额（含配置教程）
+- **背景视频**：上传自定义 mp4（无大小上限）、恢复默认、背景视频不透明度
+- **视觉主题**：
+  - 用量条三色（5h/7d/1m 颜色选择器）
+  - 不透明度：侧栏+上栏 / 等高线 / 康威方块
+  - 速度与密度：康威刷新间隔(ms) / 康威镜头刷新间隔(ms) / 康威每次移动格数(0.005 精度) / 等高线流动周期(s) / 等高线刷新间隔(s) / 康威播种密度
 
 ## 权限与隐私
 
@@ -44,12 +61,12 @@ v0.1.1 起为**自包含可移植版**：视频、等高线素材、配额抓取
 
 ```bash
 DSH_CHECKOUT=<checkout> bash scripts/build.sh
-# 产物：dsh-external-dsh-pnc-theme-<version>.tgz（含 lib/ 与 lib/assets/）
+# 产物：dsh-external-dsh-pnc-theme-<version>.tgz（含 lib/ 与 lib/assets/ 与 lib/client.js）
 ```
 
 ## 在其他 DSH 上安装
 
-1. 拷贝 `dsh-external-dsh-pnc-theme-<version>.tgz` 到目标机
+1. 从 GitHub Release 下载 `dsh-external-dsh-pnc-theme-<version>.tgz` 并拷贝到目标机
 2. 注入器环境内安装（热装配 + 重启后由 bundles 自动装配）：
    ```bash
    # 解包到插件目录后
@@ -60,13 +77,18 @@ DSH_CHECKOUT=<checkout> bash scripts/build.sh
    npm install dsh-external-dsh-pnc-theme-<version>.tgz
    # 在 profile/host 配置的 plugins 列表中加入 @dsh-external/dsh-pnc-theme
    ```
-4. 打开 Web GUI → 点击 ⚙ → 粘贴 OpenCode cookie + workspace_id → 保存（写入凭据文件）
-5. 刷新页面查看主题
+4. 打开 Web GUI → 设置 → OpenCode Go 配额 → 按教程填写 cookie + workspace_id → 保存
+5. 刷新页面查看主题（建议使用深色主题）
 
 ## 发布
 
 ```bash
 # 需要 git 仓库 + gh CLI 认证
-git init && git add -A && git commit -m "v0.1.1"
-gh release create v0.1.1 dsh-external-dsh-pnc-theme-0.1.1.tgz
+git add -A && git commit -m "v<version>"
+git tag v<version>
+gh release create v<version> dsh-external-dsh-pnc-theme-<version>.tgz
 ```
+
+## License
+
+BSD-3-Clause

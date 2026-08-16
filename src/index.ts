@@ -13,15 +13,22 @@ import type { Context } from '@deepseek-ai/cordis'
 import { fileURLToPath } from 'node:url'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { existsSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
+import { writeFile } from 'node:fs/promises'
 
 export const name = '@dsh-external/dsh-pnc-theme'
 
 // 资源默认内嵌在插件包 lib/assets/（构建时由 scripts/build.sh 拷贝），开箱即用；
-// 背景视频可用环境变量 PNC_BG_VIDEO 覆盖为任意本地文件路径（如不想打包大视频）。
-// creds（cookie/workspace_id/限额）为私有数据不打包：默认存 ~/.dsh/pnc_creds.json，
-// 可用环境变量 PNC_CREDS_PATH 覆盖（或通过 /pnc-config 配置面板写入）。
-const VIDEO_PATH = process.env.PNC_BG_VIDEO || fileURLToPath(new URL('./assets/bg.mp4', import.meta.url))
+// 背景视频可用环境变量 PNC_BG_VIDEO 覆盖为任意本地文件路径（如不想打包大视频）；
+// v156：设置页可上传自定义背景视频 → 存 ~/.dsh/pnc-bg.mp4，优先于环境变量与包内默认。
+const PACKAGE_VIDEO_PATH = fileURLToPath(new URL('./assets/bg.mp4', import.meta.url))
+const UPLOADED_VIDEO_PATH = join(homedir(), '.dsh', 'pnc-bg.mp4')
+function resolveVideoPath(): string {
+  try {
+    if (existsSync(UPLOADED_VIDEO_PATH)) return UPLOADED_VIDEO_PATH
+  } catch (e) { /* ignore */ }
+  return process.env.PNC_BG_VIDEO || PACKAGE_VIDEO_PATH
+}
 const CREDS_PATH = process.env.PNC_CREDS_PATH || join(homedir(), '.dsh', 'pnc_creds.json')
 const FETCH_SCRIPT = fileURLToPath(new URL('./assets/fetch_quota.py', import.meta.url))
 const PYTHON = process.env.PNC_PYTHON || (existsSync('C:/Program Files/Python312/python.exe') ? 'C:/Program Files/Python312/python.exe' : 'python')
@@ -66,6 +73,53 @@ export function apply(ctx: Context): void {
     return JSON.parse(text)
   }
   const DEFAULT_LIMITS = { rolling: 12, weekly: 30, monthly: 60 }
+  // v155：视觉主题参数（用量条三色/面板不透明度/等高线与康威不透明度/康威密度），可配置
+  // v158：速度类参数改为 ms 直显——康威刷新间隔、康威镜头移动间隔、等高线流动周期、等高线刷新间隔
+  const DEFAULT_THEME = {
+    quotaMo: '#1550B5',
+    quotaWk: '#3A7BF2',
+    quotaRl: '#5E9CF5',
+    panelAlpha: 0.9,
+    contourAlpha: 0.3,
+    conwayAlpha: 0.4,
+    conwayDensity: 1,
+    videoAlpha: 1,
+    conwayRefreshMs: 260,
+    conwayScrollMs: 260,
+    conwayScrollBlocks: 0.135,
+    contourFlowMs: 180000,
+    contourRefreshMs: 0,
+  }
+  function clampNum(v: unknown, fallback: number, min: number, max: number): number {
+    const n = Number(v)
+    return (isFinite(n) && n >= min && n <= max) ? n : fallback
+  }
+  function clampHex(v: unknown, fallback: string): string {
+    return (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)) ? v : fallback
+  }
+  async function readTheme(): Promise<typeof DEFAULT_THEME> {
+    try {
+      const cfg = await readCreds()
+      const t = (cfg && typeof cfg === 'object' && cfg.theme) || {}
+      return {
+        quotaMo: clampHex(t.quotaMo, DEFAULT_THEME.quotaMo),
+        quotaWk: clampHex(t.quotaWk, DEFAULT_THEME.quotaWk),
+        quotaRl: clampHex(t.quotaRl, DEFAULT_THEME.quotaRl),
+        panelAlpha: clampNum(t.panelAlpha, DEFAULT_THEME.panelAlpha, 0, 1),
+        contourAlpha: clampNum(t.contourAlpha, DEFAULT_THEME.contourAlpha, 0, 1),
+        conwayAlpha: clampNum(t.conwayAlpha, DEFAULT_THEME.conwayAlpha, 0, 1),
+        conwayDensity: clampNum(t.conwayDensity, DEFAULT_THEME.conwayDensity, 0.1, 3),
+        videoAlpha: clampNum(t.videoAlpha, DEFAULT_THEME.videoAlpha, 0, 1),
+        conwayRefreshMs: clampNum(t.conwayRefreshMs, DEFAULT_THEME.conwayRefreshMs, 30, 2000),
+        conwayScrollMs: clampNum(t.conwayScrollMs, DEFAULT_THEME.conwayScrollMs, 30, 2000),
+        conwayScrollBlocks: clampNum(t.conwayScrollBlocks, DEFAULT_THEME.conwayScrollBlocks, 0.005, 5),
+        contourFlowMs: clampNum(t.contourFlowMs, DEFAULT_THEME.contourFlowMs, 1000, 600000),
+        contourRefreshMs: clampNum(t.contourRefreshMs, DEFAULT_THEME.contourRefreshMs, 0, 600000),
+      }
+    } catch (e) {
+      return { ...DEFAULT_THEME }
+    }
+  }
   async function readLimits(): Promise<{ rolling: number; weekly: number; monthly: number }> {
     try {
       const cfg = await readCreds()
@@ -82,7 +136,7 @@ export function apply(ctx: Context): void {
 
   async function loadVideo() {
     if (cached) return cached
-    const target = await fs.resolve(VIDEO_PATH)
+    const target = await fs.resolve(resolveVideoPath())
     const info = await fs.stat(target)
     const bytes = await fs.readBytes(target, undefined, 512 * 1024 * 1024)
     cached = { bytes, size: info ? Number(info.size) : bytes.byteLength }
@@ -334,12 +388,29 @@ export function apply(ctx: Context): void {
                 weekly: (Number(l.weekly) > 0) ? Number(l.weekly) : 30,
                 monthly: (Number(l.monthly) > 0) ? Number(l.monthly) : 60,
               }
+              const t = data.theme || {}
+              const theme = {
+                quotaMo: clampHex(t.quotaMo, DEFAULT_THEME.quotaMo),
+                quotaWk: clampHex(t.quotaWk, DEFAULT_THEME.quotaWk),
+                quotaRl: clampHex(t.quotaRl, DEFAULT_THEME.quotaRl),
+                panelAlpha: clampNum(t.panelAlpha, DEFAULT_THEME.panelAlpha, 0, 1),
+                contourAlpha: clampNum(t.contourAlpha, DEFAULT_THEME.contourAlpha, 0, 1),
+                conwayAlpha: clampNum(t.conwayAlpha, DEFAULT_THEME.conwayAlpha, 0, 1),
+                conwayDensity: clampNum(t.conwayDensity, DEFAULT_THEME.conwayDensity, 0.1, 3),
+                videoAlpha: clampNum(t.videoAlpha, DEFAULT_THEME.videoAlpha, 0, 1),
+                conwayRefreshMs: clampNum(t.conwayRefreshMs, DEFAULT_THEME.conwayRefreshMs, 30, 2000),
+                conwayScrollMs: clampNum(t.conwayScrollMs, DEFAULT_THEME.conwayScrollMs, 30, 2000),
+                conwayScrollBlocks: clampNum(t.conwayScrollBlocks, DEFAULT_THEME.conwayScrollBlocks, 0.005, 5),
+                contourFlowMs: clampNum(t.contourFlowMs, DEFAULT_THEME.contourFlowMs, 1000, 600000),
+                contourRefreshMs: clampNum(t.contourRefreshMs, DEFAULT_THEME.contourRefreshMs, 0, 600000),
+              }
               const target = await fs.resolve(CREDS_PATH)
               await fs.writeText(target, JSON.stringify({
                 workspace_id: typeof data.workspace_id === 'string' ? data.workspace_id : '',
                 cookie: data.cookie,
                 cookie_len: data.cookie.length,
                 limits,
+                theme,
               }, null, 2), undefined, undefined, { mode: 'danger-full-access' })
               quotaCache = null
               quotaCacheTime = 0
@@ -352,10 +423,12 @@ export function apply(ctx: Context): void {
           })
           return
         }
-        let cfg: Record<string, any> = { cookie: '', workspace_id: '', cookie_len: 0, limits: { ...DEFAULT_LIMITS } }
+        let cfg: Record<string, any> = { cookie: '', workspace_id: '', cookie_len: 0, limits: { ...DEFAULT_LIMITS }, theme: { ...DEFAULT_THEME } }
         try {
           cfg = await readCreds()
           if (!cfg.limits) cfg.limits = { ...DEFAULT_LIMITS }
+          if (!cfg.theme) cfg.theme = { ...DEFAULT_THEME }
+          else cfg.theme = await readTheme()
         } catch (e) { /* ignore */ }
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
         res.end(JSON.stringify(cfg))
@@ -363,6 +436,69 @@ export function apply(ctx: Context): void {
         res.writeHead(500, { 'Content-Type': 'text/plain' })
         res.end('config failed: ' + String(err instanceof Error ? err.message : err))
       }
+    },
+  }))
+  disposers.push(webServer.register({
+    kind: 'exact',
+    path: '/pnc-bg-info',
+    handler: async (req: any, res: any) => {
+      try {
+        const custom = existsSync(UPLOADED_VIDEO_PATH)
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+        res.end(JSON.stringify({
+          custom,
+          path: custom ? UPLOADED_VIDEO_PATH : (process.env.PNC_BG_VIDEO || 'package'),
+          size: custom ? Number((await fs.stat(UPLOADED_VIDEO_PATH))?.size ?? 0) : 0,
+        }))
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' })
+        res.end('bg info failed: ' + String(err instanceof Error ? err.message : err))
+      }
+    },
+  }))
+  disposers.push(webServer.register({
+    kind: 'exact',
+    path: '/pnc-bg-upload',
+    handler: (req: any, res: any) => {
+      if (req.method !== 'POST') {
+        res.writeHead(405)
+        res.end()
+        return
+      }
+      let body = ''
+      req.on('data', (c: unknown) => { body += c; if (body.length > 4 * 1024 * 1024 * 1024) req.destroy() })
+      req.on('end', async () => {
+        try {
+          const data = JSON.parse(body)
+          // 空 base64 = 恢复默认（删除自定义视频）
+          if (data.base64 === '') {
+            try { await import('node:fs/promises').then((fsp) => fsp.rm(UPLOADED_VIDEO_PATH, { force: true })) } catch (e) { /* ignore */ }
+            cached = null
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+            res.end(JSON.stringify({ ok: true, reset: true }))
+            return
+          }
+          if (typeof data.base64 !== 'string' || data.base64.length === 0) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
+            res.end(JSON.stringify({ ok: false, error: '缺少视频数据' }))
+            return
+          }
+          const buf = Buffer.from(data.base64, 'base64')
+          if (buf.length < 1024) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
+            res.end(JSON.stringify({ ok: false, error: '视频文件过小（<1KB）' }))
+            return
+          }
+          try { mkdirSync(join(homedir(), '.dsh'), { recursive: true }) } catch (e) { /* ignore */ }
+          await writeFile(UPLOADED_VIDEO_PATH, buf)
+          cached = null // 清视频缓存，下次请求用新文件
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ ok: true, size: buf.length, path: UPLOADED_VIDEO_PATH }))
+        } catch (e) {
+          res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ ok: false, error: String(e instanceof Error ? e.message : e) }))
+        }
+      })
     },
   }))
   disposers.push(webServer.register({

@@ -75,4 +75,6 @@ echo "=== Copying assets → lib/assets ==="
 rm -rf lib/assets
 mkdir -p lib/assets
 cp -r assets/. lib/assets/
+echo "=== Copying client → lib/client.js ==="
+cp src/client.js lib/client.js
 echo "=== Build complete ==="

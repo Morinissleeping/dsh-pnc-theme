@@ -8,14 +8,127 @@
     document.body.style.background = '#0d1117';
   }
   var CW = { GW: 404, GH: 19, CS: 6, VW: 148 }
-  function conwayTick() {
+  // v155：视觉主题参数（设置页可配置；默认值 = CSS/canvas 原硬编码值）
+  // v158：速度类参数 ms 直显
+  var PNC_THEME_DEFAULTS = {
+    quotaMo: '#1550B5',
+    quotaWk: '#3A7BF2',
+    quotaRl: '#5E9CF5',
+    panelAlpha: 0.9,
+    contourAlpha: 0.3,
+    conwayAlpha: 0.4,
+    conwayDensity: 1,
+    videoAlpha: 1,
+    conwayRefreshMs: 260,
+    conwayScrollMs: 260,
+    conwayScrollBlocks: 0.135,
+    contourFlowMs: 180000,
+    contourRefreshMs: 0
+  };
+  window.__pncTheme = Object.assign({}, PNC_THEME_DEFAULTS);
+  function hexToRgb(hex) {
+    var m = /^#([0-9a-fA-F]{6})$/.exec(hex || '');
+    if (!m) return null;
+    var n = parseInt(m[1], 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  // 把主题参数应用到 CSS 变量与 canvas 参数（供设置页保存后调用；页面加载时自动跑一次）
+  function applyTheme(t) {
+    var th = t || window.__pncTheme || PNC_THEME_DEFAULTS;
+    window.__pncTheme = th;
+    var root = document.documentElement;
+    root.style.setProperty('--pnc-quota-mo', th.quotaMo);
+    root.style.setProperty('--pnc-quota-wk', th.quotaWk);
+    root.style.setProperty('--pnc-quota-rl', th.quotaRl);
+    root.style.setProperty('--pnc-panel-alpha', String(clampNum(th.panelAlpha, 0.9, 0, 1)));
+    window.__pncContourAlpha = clampNum(th.contourAlpha, 0.3, 0, 1);
+    window.__pncConwayAlpha = clampNum(th.conwayAlpha, 0.4, 0, 1);
+    window.__pncConwayDensity = clampNum(th.conwayDensity, 1, 0.1, 3);
+    window.__pncVideoAlpha = clampNum(th.videoAlpha, 1, 0, 1);
+    window.__pncConwayRefreshMs = clampNum(th.conwayRefreshMs, 260, 30, 2000);
+    window.__pncConwayScrollMs = clampNum(th.conwayScrollMs, 260, 30, 2000);
+    window.__pncConwayScrollBlocks = clampNum(th.conwayScrollBlocks, 0.135, 0.005, 5);
+    window.__pncContourFlowMs = clampNum(th.contourFlowMs, 180000, 1000, 600000);
+    window.__pncContourRefreshMs = clampNum(th.contourRefreshMs, 0, 0, 600000);
+    root.style.setProperty('--pnc-video-alpha', String(window.__pncVideoAlpha));
+    root.style.setProperty('--pnc-contour-flow-ms', window.__pncContourFlowMs + 'ms');
+    // 等高线定期重绘（contourRefreshMs>0 时按周期清缓存再生，产生缓慢演变）
+    if (window.__pncContourRefreshTimer) {
+      clearTimeout(window.__pncContourRefreshTimer);
+      window.__pncContourRefreshTimer = null;
+    }
+    if (window.__pncContourRefreshMs > 0) {
+      (function schedule() {
+        window.__pncContourRefreshTimer = setTimeout(function () {
+          window.__pncContourSet = null;
+          applyContour();
+          schedule();
+        }, window.__pncContourRefreshMs);
+      })();
+    }
+    // 等高线已生成则按新不透明度重绘（清缓存强制再生）
+    if (window.__pncContourSet) {
+      window.__pncContourSet = null;
+      applyContour();
+    }
+  }
+  window.__pncApplyTheme = applyTheme;
+  function clampNum(v, fb, lo, hi) {
+    var n = Number(v);
+    return (isFinite(n) && n >= lo && n <= hi) ? n : fb;
+  }
+  // 页面加载时拉取 theme 配置（凭据文件里的 theme 字段），未配置用默认
+  function loadTheme() {
+    fetch('/pnc-config').then(function (r) { return r.json(); }).then(function (cfg) {
+      if (cfg && cfg.theme) applyTheme(cfg.theme);
+    }).catch(function () {});
+  }
+  // v160：浅色主题不适配提示——检测到浅色主题时在右下角提示一次（可关闭）
+  function checkLightTheme() {
+    function isLight() {
+      // DSH 深色标记权威位置：body[data-ds-dark-theme]（html 上没有）
+      return document.body.getAttribute('data-ds-dark-theme') === null &&
+        document.documentElement.getAttribute('data-ds-dark-theme') === null;
+    }
+    function showNotice() {
+      if (document.getElementById('pnc-light-notice') || !isLight()) return;
+      var n = document.createElement('div');
+      n.id = 'pnc-light-notice';
+      n.setAttribute('role', 'status');
+      n.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:9999;background:#2C2C2E;color:#e8ecf1;border:1px solid rgba(255,255,255,.16);padding:10px 14px;font-size:12px;line-height:1.6;font-family:"Source Han Sans SC","Source Han Sans CN","Noto Sans CJK SC","Microsoft YaHei",sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.5);max-width:300px';
+      n.innerHTML = '<div style="font-weight:600;margin-bottom:4px">⚠ PNC 主题不适配浅色主题</div>' +
+        '<div>当前为浅色模式，背景视频/等高线/信息流暗色效果将异常。请在 设置 → 外观 中切换到深色主题。</div>' +
+        '<button id="pnc-light-close" style="margin-top:8px;background:#3A3F45;color:#fff;border:none;padding:4px 12px;font-size:12px;cursor:pointer">知道了</button>';
+      document.body.appendChild(n);
+      document.getElementById('pnc-light-close').addEventListener('click', function () {
+        if (n.parentNode) n.parentNode.removeChild(n);
+      });
+    }
+    setTimeout(showNotice, 800);
+    // 监听主题切换：切到深色自动移除，切回浅色重新提示
+    if (window.MutationObserver) {
+      var mo2 = new MutationObserver(function () {
+        var el = document.getElementById('pnc-light-notice');
+        if (isLight()) {
+          showNotice();
+        } else if (el && el.parentNode) {
+          el.parentNode.removeChild(el);
+        }
+      });
+      mo2.observe(document.body, { attributes: true, attributeFilter: ['data-ds-dark-theme'] });
+      mo2.observe(document.documentElement, { attributes: true, attributeFilter: ['data-ds-dark-theme'] });
+    }
+  }
+  function conwayEvolve() {
     var s = window.__pncConway;
     if (!s) return;
     // v146：活动度由 LLM 工作状态接口驱动（pollActivity 每 2s 更新）
     s.activity *= 0.985;
     var col0 = Math.floor((s.scroll || 0) / CW.CS);
     var front = (col0 + CW.VW) % CW.GW;
-    var p = Math.min(0.9, s.activity / 80);
+    // v155：播种密度 = 活跃度基础密度 × 配置系数
+    var densityMul = window.__pncConwayDensity || 1;
+    var p = Math.min(0.9, (s.activity / 80) * densityMul);
     if (Math.random() < p) {
       var by = Math.floor(Math.random() * (CW.GH - 2));
       var len2 = 2 + (Math.random() < 0.4 ? 1 : 0);
@@ -40,7 +153,14 @@
       }
     }
     var t = g; s.g = g2; s.g2 = t;
-    s.scroll = (s.scroll || 0) + 0.8;
+    s.timer = setTimeout(conwayEvolve, (window.__pncConwayRefreshMs || 260));
+  }
+  function conwayCamera() {
+    var s = window.__pncConway;
+    if (!s) return;
+    // v161：镜头（滚动）速度 = 每次移动 N 个 block（1 block = CW.CS px）
+    var blocks = window.__pncConwayScrollBlocks != null ? window.__pncConwayScrollBlocks : 0.135;
+    s.scroll = (s.scroll || 0) + blocks * CW.CS;
     var cv = document.querySelector('.pnc-conway');
     if (cv && cv.width > 0) {
       var ctx = cv.getContext('2d');
@@ -59,7 +179,9 @@
         ctx.moveTo(0, py); ctx.lineTo(cv.width, py);
       }
       ctx.stroke();
-      ctx.fillStyle = 'rgba(122,124,128,0.4)';
+      // v155：康威方块不透明度可配置
+      var cwa = window.__pncConwayAlpha || 0.4;
+      ctx.fillStyle = 'rgba(122,124,128,' + cwa + ')';
       var col0b = Math.floor(off / CW.CS);
       for (var vx = 0; vx <= CW.VW; vx++) {
         var wx = (col0b + vx) % CW.GW;
@@ -70,7 +192,7 @@
         }
       }
     }
-    s.timer = setTimeout(conwayTick, 260);
+    s.camTimer = setTimeout(conwayCamera, (window.__pncConwayScrollMs != null ? window.__pncConwayScrollMs : 260));
   }
   function ensureConway() {
     var host = document.querySelector('.pI_x6G_centerCol');
@@ -85,11 +207,12 @@
       CW.VW = Math.floor(cv.width / CW.CS);
       CW.GH = Math.floor(cv.height / CW.CS);
       if (!window.__pncConway || !window.__pncConway.g) {
-        var s = { g: new Uint8Array(CW.GW * CW.GH), g2: new Uint8Array(CW.GW * CW.GH), scroll: 0, activity: 0, lastLen: 0, timer: null };
+        var s = { g: new Uint8Array(CW.GW * CW.GH), g2: new Uint8Array(CW.GW * CW.GH), scroll: 0, activity: 0, lastLen: 0, timer: null, camTimer: null };
         window.__pncConway = s;
       }
       var st = window.__pncConway;
-      if (!st.timer) st.timer = setTimeout(conwayTick, 260);
+      if (!st.timer) st.timer = setTimeout(conwayEvolve, (window.__pncConwayRefreshMs || 260));
+      if (!st.camTimer) st.camTimer = setTimeout(conwayCamera, (window.__pncConwayScrollMs != null ? window.__pncConwayScrollMs : 260));
     } else {
       var h2 = host.clientHeight || 600;
       var want = Math.max(16, Math.floor(h2 / CW.CS));
@@ -167,7 +290,9 @@
     var cv = document.createElement('canvas');
     cv.width = W; cv.height = H;
     var ctx = cv.getContext('2d');
-    ctx.strokeStyle = 'rgba(88,88,90,0.3)';
+    // v155：等高线不透明度可配置
+    var ca = window.__pncContourAlpha != null ? window.__pncContourAlpha : 0.3;
+    ctx.strokeStyle = 'rgba(88,88,90,' + ca + ')';
     ctx.lineWidth = 1;
     for (var y = 0; y < H - 1; y++) {
       for (var x = 0; x < W - 1; x++) {
@@ -346,164 +471,7 @@
       }
     }, 150);
   }
-  function buildConfigPanel() {
-    var existing = document.getElementById('pnc-config-btn');
-    var label = document.getElementById('pnc-config-label');
-    var panel = document.getElementById('pnc-config-panel');
-    if (!panel) {
-      panel = document.createElement('div');
-      panel.id = 'pnc-config-panel';
-      panel.className = 'pnc-config-panel';
-      panel.innerHTML = '<div class="pnc-config-title">OpenCode 配额配置</div>' +
-        '<label class="pnc-config-label" for="pnc-cfg-cookie">Cookie</label>' +
-        '<textarea id="pnc-cfg-cookie" class="pnc-config-input" rows="4" placeholder="粘贴 OpenCode cookie"></textarea>' +
-        '<label class="pnc-config-label" for="pnc-cfg-wsid">Workspace ID</label>' +
-        '<input id="pnc-cfg-wsid" class="pnc-config-input" placeholder="workspace_id">' +
-        '<div class="pnc-config-title" style="margin-top:10px !important">金额限额（USD）</div>' +
-        '<div class="pnc-config-row">' +
-        '<label class="pnc-config-label" style="flex:1 !important;margin:0 !important" for="pnc-cfg-lim-rl">5h</label>' +
-        '<input id="pnc-cfg-lim-rl" class="pnc-config-input" type="number" min="1" step="1" placeholder="12">' +
-        '</div>' +
-        '<div class="pnc-config-row">' +
-        '<label class="pnc-config-label" style="flex:1 !important;margin:0 !important" for="pnc-cfg-lim-wk">7d</label>' +
-        '<input id="pnc-cfg-lim-wk" class="pnc-config-input" type="number" min="1" step="1" placeholder="30">' +
-        '</div>' +
-        '<div class="pnc-config-row">' +
-        '<label class="pnc-config-label" style="flex:1 !important;margin:0 !important" for="pnc-cfg-lim-mo">1m</label>' +
-        '<input id="pnc-cfg-lim-mo" class="pnc-config-input" type="number" min="1" step="1" placeholder="60">' +
-        '</div>' +
-        '<div class="pnc-config-row">' +
-        '<button id="pnc-cfg-save" class="pnc-config-save">保存</button>' +
-        '<button id="pnc-cfg-close" class="pnc-config-close">关闭</button>' +
-        '</div>' +
-        '<div id="pnc-cfg-status" class="pnc-config-status"></div>';
-      document.body.appendChild(panel);
-      function loadConfig() {
-        var st = document.getElementById('pnc-cfg-status');
-        st.textContent = '读取中…';
-        fetch('/pnc-config').then(function (r) { return r.json(); }).then(function (cfg) {
-          if (cfg && typeof cfg.cookie === 'string' && cfg.cookie.length > 0) {
-            document.getElementById('pnc-cfg-cookie').value = cfg.cookie;
-            document.getElementById('pnc-cfg-wsid').value = cfg.workspace_id || '';
-            st.textContent = '已加载当前配置（cookie 长度 ' + cfg.cookie.length + '）';
-          } else {
-            st.textContent = '暂无配置，请粘贴 cookie 后保存';
-          }
-          var l = cfg && cfg.limits ? cfg.limits : {};
-          document.getElementById('pnc-cfg-lim-rl').value = l.rolling || 12;
-          document.getElementById('pnc-cfg-lim-wk').value = l.weekly || 30;
-          document.getElementById('pnc-cfg-lim-mo').value = l.monthly || 60;
-        }).catch(function () { st.textContent = '读取配置失败'; });
-      }
-      function saveConfig() {
-        var st = document.getElementById('pnc-cfg-status');
-        var cookie = document.getElementById('pnc-cfg-cookie').value.trim();
-        if (!cookie) { st.textContent = 'cookie 不能为空'; return; }
-        var body = JSON.stringify({
-          cookie: cookie,
-          workspace_id: document.getElementById('pnc-cfg-wsid').value.trim(),
-          limits: {
-            rolling: Number(document.getElementById('pnc-cfg-lim-rl').value) || 12,
-            weekly: Number(document.getElementById('pnc-cfg-lim-wk').value) || 30,
-            monthly: Number(document.getElementById('pnc-cfg-lim-mo').value) || 60
-          }
-        });
-        st.textContent = '保存中…';
-        fetch('/pnc-config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: body
-        }).then(function (r) { return r.json(); }).then(function (res) {
-          if (res && res.ok) {
-            st.textContent = '已保存，配额数据将立即刷新';
-            window.__pncQuotaCache = null;
-            updateQuota(true);
-          } else {
-            st.textContent = '保存失败：' + (res && res.error ? res.error : '未知错误');
-          }
-        }).catch(function () { st.textContent = '保存失败：网络错误'; });
-      }
-      document.getElementById('pnc-cfg-close').addEventListener('click', function () {
-        panel.classList.remove('pnc-config-open');
-      });
-      document.getElementById('pnc-cfg-save').addEventListener('click', saveConfig);
-      window.__pncConfigLoad = loadConfig;
-    }
-    if (!existing) {
-      var btn = document.createElement('button');
-      btn.id = 'pnc-config-btn';
-      btn.className = 'pnc-config-btn';
-      btn.title = 'OpenCode 配额配置';
-      btn.setAttribute('aria-label', 'OpenCode 配额配置');
-      btn.textContent = '\u2699';
-      document.body.appendChild(btn);
-      if (!label) {
-        label = document.createElement('span');
-        label.id = 'pnc-config-label';
-        label.className = 'pnc-config-label-text';
-        label.textContent = 'OpenCode Go 配额检查';
-        document.body.appendChild(label);
-      }
-      btn.addEventListener('click', function () {
-        var open = panel.classList.toggle('pnc-config-open');
-        if (open) {
-          var r = btn.getBoundingClientRect();
-          var w = 320;
-          panel.style.left = Math.max(8, Math.round(r.left + r.width - w)) + 'px';
-          panel.style.top = Math.round(r.bottom + 8) + 'px';
-          panel.style.right = 'auto';
-          panel.style.bottom = 'auto';
-          if (window.__pncConfigLoad) window.__pncConfigLoad();
-        }
-      });
-      existing = btn;
-    }
-    // 每次调用把按钮锚定到"会话日志"按钮左侧（防 React 重排）；
-    // 无会话日志或 header 隐藏（hero 状态）时浮动右下角
-    var anchor = document.querySelector('.nL4_yW_sessionLogButton');
-    var floatMode = false;
-    if (anchor && anchor.parentNode) {
-      if (anchor.parentNode !== existing.parentNode || anchor.previousElementSibling !== existing) {
-        anchor.parentNode.insertBefore(existing, anchor);
-      }
-      if (label && (label.parentNode !== anchor.parentNode || label.nextElementSibling !== existing)) {
-        anchor.parentNode.insertBefore(label, existing);
-      }
-    } else {
-      var util = document.querySelector('.wSkVaW_headerUtilities');
-      var hdr = document.querySelector('.wSkVaW_header');
-      var visibleHeader = null;
-      if (util && util.getBoundingClientRect().width > 0) visibleHeader = util;
-      else if (hdr && hdr.getBoundingClientRect().width > 0) visibleHeader = hdr;
-      if (visibleHeader) {
-        if (visibleHeader.firstChild !== existing) visibleHeader.insertBefore(existing, visibleHeader.firstChild);
-        if (label && (label.parentNode !== visibleHeader || label.nextElementSibling !== existing)) {
-          visibleHeader.insertBefore(label, existing);
-        }
-      } else {
-        floatMode = true;
-        if (existing.parentNode !== document.body) document.body.appendChild(existing);
-      }
-    }
-    if (floatMode) existing.classList.add('pnc-config-float');
-    else existing.classList.remove('pnc-config-float');
-    if (label) label.style.display = floatMode ? 'none' : '';
-    // v141：早期（session log 未渲染）隐藏按钮避免右下角闪现；找到锚点或超时兜底后再显示
-    if (window.__pncConfigEarly && floatMode) {
-      existing.style.display = 'none';
-    } else {
-      existing.style.display = '';
-    }
-  }
-  // v131：配置按钮锚定改为低频定时（3s），避免在 MutationObserver 回调中高频执行引发振荡
-  var _cfgTimer = null;
-  function scheduleConfigAnchor() {
-    if (_cfgTimer) return;
-    _cfgTimer = setTimeout(function () {
-      _cfgTimer = null;
-      buildConfigPanel();
-    }, 3000);
-  }
+  // v156：配置面板已迁入 DSH 原生设置页（设置 → OpenCode Go 配额），移除 ⚙ 浮动按钮/锚定逻辑
   // v146：轮询 LLM 工作状态评分 → 驱动康威活动度与等高线密度
   function pollActivity() {
     fetch('/pnc-activity.json').then(function (r) { return r.json(); }).then(function (a) {
@@ -526,21 +494,8 @@
   ensureQuota();
   ensureAlign();
   pollActivity();
-  window.__pncConfigEarly = true;
-  buildConfigPanel();
-  var _earlyMs = [200, 600, 1500, 3000, 6000];
-  for (var i = 0; i < _earlyMs.length; i++) {
-    (function (ms) {
-      setTimeout(function () { buildConfigPanel(); }, ms);
-    })(_earlyMs[i]);
-  }
-  // 10s 兜底：仍无会话日志（hero 状态）则显示为右下角浮动
-  setTimeout(function () {
-    window.__pncConfigEarly = false;
-    buildConfigPanel();
-  }, 10000);
-  scheduleConfigAnchor();
-  setInterval(scheduleConfigAnchor, 3000);
+  loadTheme();
+  checkLightTheme();
   updateQuota(false);
   setInterval(function () { updateQuota(false); }, 180000);
   if (window.MutationObserver) {
