@@ -49,7 +49,7 @@ textarea.pnc-input{resize:vertical;min-height:72px}
 .pnc-status.ok{color:var(--dsw-alias-state-success-primary,#3fb950)}
 .pnc-status.err{color:var(--dsw-alias-state-error-primary,#f85149)}
 `;
-		const PNC_THEME_DEFAULTS = { quotaMo: '#1550B5', quotaWk: '#3A7BF2', quotaRl: '#5E9CF5', panelAlpha: 0.9, contourAlpha: 0.3, conwayAlpha: 0.4, conwayDensity: 1, videoAlpha: 1, conwayRefreshMs: 260, conwayScrollMs: 260, conwayScrollBlocks: 0.135, contourFlowMs: 180000, contourRefreshMs: 0 };
+		const PNC_THEME_DEFAULTS = { quotaMo: '#1550B5', quotaWk: '#3A7BF2', quotaRl: '#5E9CF5', panelAlpha: 0.9, contourAlpha: 0.3, conwayAlpha: 0.4, conwayDensity: 1, videoAlpha: 1, conwayRefreshMs: 260, conwayScrollMs: 260, conwayScrollBlocks: 0.135, contourFlowMs: 180000, contourRefreshMs: 0, glassAlpha: 0.5 };
 		/** 设置页 React 组件：cookie/workspace_id/limits 表单 + 视觉主题参数，读写 /pnc-config。 */
 		function PncQuotaSection() {
 			const [cookie, setCookie] = React.useState("");
@@ -195,7 +195,8 @@ textarea.pnc-input{resize:vertical;min-height:72px}
 							conwayScrollMs: Number(theme.conwayScrollMs),
 							conwayScrollBlocks: Number(theme.conwayScrollBlocks),
 							contourFlowMs: Number(theme.contourFlowMs),
-							contourRefreshMs: Number(theme.contourRefreshMs)
+							contourRefreshMs: Number(theme.contourRefreshMs),
+							glassAlpha: Number(theme.glassAlpha)
 						}
 					})
 				}).then((r) => r.json()).then((res) => {
@@ -275,6 +276,7 @@ textarea.pnc-input{resize:vertical;min-height:72px}
 					React.createElement("button", { className: "pnc-btn ghost", disabled: bgUploading, onClick: resetBg }, "重置")),
 				React.createElement("p", { className: "pnc-desc" }, bgDesc()),
 				rangeRow("背景不透明度", "videoAlpha", 0, 1, 0.05, (v) => Math.round(v * 100) + "%"),
+				rangeRow("毛玻璃不透明度", "glassAlpha", 0, 1, 0.05, (v) => Math.round(v * 100) + "%"),
 				React.createElement("h4", null, "视觉主题"),
 				React.createElement("div", { className: "pnc-sub" }, "用量条颜色"),
 				colorRow("用量条 5h", "quotaMo"),

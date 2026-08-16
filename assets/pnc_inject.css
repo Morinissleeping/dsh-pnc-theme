@@ -55,7 +55,9 @@ body[data-ds-dark-theme]{--dsw-alias-bg-base:rgba(21,21,23,0);--dsw-alias-bg-lay
 .nL4_yW_sessionLogButton:hover:not(:disabled){background:#4A4F56 !important;color:#fff !important;opacity:1 !important}
 .nL4_yW_sessionLogButton:active{transform:none !important}
 .nL4_yW_sessionLogButton:disabled{opacity:1 !important}
-#pnc-bg-video{filter:blur(6px) brightness(0.8) saturate(0.9) !important;opacity:var(--pnc-video-alpha,1) !important}
+/* v0.2.4：毛玻璃拆为独立层（#pnc-bg-glass，z:-2，在视频/图片 z:-3 之上、其他元素之下），
+   视频/图片不再自带 blur，只保留亮度/饱和度调色 */
+#pnc-bg-video{filter:brightness(0.8) saturate(0.9) !important;opacity:var(--pnc-video-alpha,1) !important}
 /* v152：左栏+上栏半透明回调（rgba(27,27,28,0.9)），等高线更灰；v155 不透明度可配置；v158 流动时长可配置 */
 .pI_x6G_sidebarCol{background-color:rgba(27,27,28,var(--pnc-panel-alpha,0.9)) !important;animation:pnc-contour-flow-x var(--pnc-contour-flow-ms,180000ms) linear infinite !important}
 .hHd-Xa_root{background:transparent !important}
