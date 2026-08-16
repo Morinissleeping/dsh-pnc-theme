@@ -21,7 +21,7 @@
 | 路径 | 说明 |
 |---|---|
 | `/pnc-config` | GET/POST 读写配置（cookie/workspace_id/limits/theme），POST 后立即清缓存刷新 |
-| `/pnc-quota-data.json` | 配额数据（live-fetch，60 秒缓存，失败 30 秒快速重试），附带 limits |
+| `/pnc-quota-data.json` | 配额数据（live-fetch，缓存时长 = 设置页「配额自动刷新间隔」，失败 30 秒快速重试），附带 limits |
 | `/pnc-activity.json` | LLM 工作状态评分（score/level/events） |
 | `/pnc-bg.mp4` | 背景视频（Range 支持） |
 | `/pnc-bg-info` | 背景视频当前状态（自定义/包内默认/大小） |
@@ -47,7 +47,7 @@ v0.1.1 起为**自包含可移植版**：视频、等高线素材、配额抓取
 
 打开 Web GUI → 侧栏底部 设置 → 「OpenCode Go 配额」：
 
-- **凭据与限额**：Cookie / Workspace ID / 5h·7d·1m 金额限额（含配置教程）
+- **凭据与限额**：Cookie / Workspace ID / 5h·7d·1m 金额限额（含配置教程）、配额自动刷新间隔（10–600 秒）
 - **毛玻璃层**：独立模糊层 `#pnc-bg-glass`——层序：视频/图片(z:-3) < 毛玻璃层(z:-2) < 所有其他元素；全屏覆盖，backdrop-filter blur(20px) + saturate(150%)；「毛玻璃不透明度」滑条控制层浓度（默认 90%），「面板透度」滑条控制面板底色透明度（默认 55%）
 - **背景**（视频/图片合并入口）：上传 mp4/webm 或 PNG/JPEG/GIF/WebP（图片存在时优先于视频）、一键重置回包内默认视频、背景不透明度（视频与图片通用）、毛玻璃不透明度（独立层浓度）、面板透度；上传/重置后页面自动刷新生效
 - **视觉主题**：
@@ -75,7 +75,7 @@ DSH_CHECKOUT=<checkout> bash scripts/build.sh
 
 ```bash
 # 方式一：GitHub Release tarball（推荐）
-dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.12/dsh-external-dsh-pnc-theme-0.2.12.tgz
+dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.13/dsh-external-dsh-pnc-theme-0.2.13.tgz
 
 # 方式二：源码目录（lib/ 已提交，clone 后无需构建）
 git clone https://github.com/Morinissleeping/dsh-pnc-theme

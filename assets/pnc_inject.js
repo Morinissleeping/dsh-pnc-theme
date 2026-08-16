@@ -26,7 +26,8 @@
     conwayScrollBlocks: 0.135,
     contourFlowMs: 180000,
     contourRefreshMs: 0,
-    glassAlpha: 0.9
+    glassAlpha: 0.9,
+    quotaRefreshSec: 60
   };
   window.__pncTheme = Object.assign({}, PNC_THEME_DEFAULTS);
   function hexToRgb(hex) {
@@ -53,6 +54,8 @@
     window.__pncConwayScrollBlocks = clampNum(th.conwayScrollBlocks, 0.135, 0.005, 5);
     window.__pncContourFlowMs = clampNum(th.contourFlowMs, 180000, 1000, 600000);
     window.__pncContourRefreshMs = clampNum(th.contourRefreshMs, 0, 0, 600000);
+    // v0.2.13：配额自动刷新间隔（秒）→ ms；设置页保存后立即生效（下一次轮询按新值）
+    window.__pncQuotaRefreshMs = Math.round(clampNum(th.quotaRefreshSec, 60, 10, 600)) * 1000;
     root.style.setProperty('--pnc-video-alpha', String(window.__pncVideoAlpha));
     root.style.setProperty('--pnc-glass-alpha', String(clampNum(th.glassAlpha, 0.9, 0, 1)));
     root.style.setProperty('--pnc-contour-flow-ms', window.__pncContourFlowMs + 'ms');
@@ -383,8 +386,9 @@
     try {
       var now = Date.now();
       var cache = window.__pncQuotaCache;
-      // v0.2.11：自动刷新提速——前端缓存 60s（原来 3 分钟）
-      if (cache && now - cache.t < 60000) { applyQuota(cache.q, instant); return; }
+      // v0.2.13：前端缓存时长跟随配置（quotaRefreshSec，默认 60s）
+      var cacheMs = window.__pncQuotaRefreshMs || 60000;
+      if (cache && now - cache.t < cacheMs) { applyQuota(cache.q, instant); return; }
       fetch('/pnc-quota-data.json').then(function (r) { return r.json(); }).then(function (q) {
         window.__pncQuotaCache = { t: Date.now(), q: q };
         applyQuota(q, instant);
@@ -528,7 +532,13 @@
   checkLightTheme();
   clipLogo();
   updateQuota(false);
-  setInterval(function () { updateQuota(false); }, 60000);
+  // v0.2.13：配额轮询改为递归 setTimeout，间隔跟随配置（quotaRefreshSec），保存后下次轮询即用新值
+  (function scheduleQuota() {
+    setTimeout(function () {
+      updateQuota(false);
+      scheduleQuota();
+    }, window.__pncQuotaRefreshMs || 60000);
+  })();
   if (window.MutationObserver) {
     var mo = new MutationObserver(function () {
       var sb = document.querySelector('.pI_x6G_sidebarCol');

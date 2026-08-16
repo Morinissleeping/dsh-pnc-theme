@@ -119,6 +119,8 @@ export function apply(ctx: Context): void {
     contourFlowMs: 180000,
     contourRefreshMs: 0,
     glassAlpha: 0.9,
+    // v0.2.13：配额自动刷新间隔（秒）——前端轮询 + host 缓存统一由它控制
+    quotaRefreshSec: 60,
   }
   function clampNum(v: unknown, fallback: number, min: number, max: number): number {
     const n = Number(v)
@@ -146,6 +148,7 @@ export function apply(ctx: Context): void {
         contourFlowMs: clampNum(t.contourFlowMs, DEFAULT_THEME.contourFlowMs, 1000, 600000),
         contourRefreshMs: clampNum(t.contourRefreshMs, DEFAULT_THEME.contourRefreshMs, 0, 600000),
         glassAlpha: clampNum(t.glassAlpha, DEFAULT_THEME.glassAlpha, 0, 1),
+        quotaRefreshSec: Math.round(clampNum(t.quotaRefreshSec, DEFAULT_THEME.quotaRefreshSec, 10, 600)),
       }
     } catch (e) {
       return { ...DEFAULT_THEME }
@@ -275,9 +278,12 @@ export function apply(ctx: Context): void {
     return null
   }
   // v0.2.11：配额自动刷新提速——成功缓存 60s，失败 30s 后快速重试（原来 3 分钟且失败会停住）
+  // v0.2.13：缓存时长由配置 quotaRefreshSec 控制（默认 60s，失败仍 30s 快速重试）
   async function getQuota(): Promise<Record<string, any> | null> {
     const now = Date.now()
-    if (quotaCache && now - quotaCacheTime < 60000) return quotaCache
+    const th = await readTheme()
+    const cacheMs = Math.max(10000, Math.round(th.quotaRefreshSec) * 1000)
+    if (quotaCache && now - quotaCacheTime < cacheMs) return quotaCache
     const q = await fetchQuotaLive()
     quotaCache = q
     quotaCacheTime = q ? now : now - 30000
@@ -442,6 +448,7 @@ export function apply(ctx: Context): void {
                 contourFlowMs: clampNum(t.contourFlowMs, DEFAULT_THEME.contourFlowMs, 1000, 600000),
                 contourRefreshMs: clampNum(t.contourRefreshMs, DEFAULT_THEME.contourRefreshMs, 0, 600000),
                 glassAlpha: clampNum(t.glassAlpha, DEFAULT_THEME.glassAlpha, 0, 1),
+                quotaRefreshSec: Math.round(clampNum(t.quotaRefreshSec, DEFAULT_THEME.quotaRefreshSec, 10, 600)),
               }
               const target = await fs.resolve(CREDS_PATH)
               await fs.writeText(target, JSON.stringify({
