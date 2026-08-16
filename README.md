@@ -4,8 +4,11 @@
 <img width="1904" height="911" alt="屏幕截图 2026-08-16 111532" src="https://github.com/user-attachments/assets/0d5ca23b-e24e-4ee9-9265-95aedb4b1272" />
 附上Opencode Go用量指示条。
 
+配置和设置都在左下角的设置中
+
 这个仓库是自用的——所以可能不会更新
 MIT，遇到什么问题自己fork改造
+
 下面是LLM写的
 ## 功能
 
