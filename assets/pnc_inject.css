@@ -55,17 +55,20 @@ body[data-ds-dark-theme]{--dsw-alias-bg-base:rgba(21,21,23,0);--dsw-alias-bg-lay
 .nL4_yW_sessionLogButton:hover:not(:disabled){background:#4A4F56 !important;color:#fff !important;opacity:1 !important}
 .nL4_yW_sessionLogButton:active{transform:none !important}
 .nL4_yW_sessionLogButton:disabled{opacity:1 !important}
-/* v0.2.4：毛玻璃拆为独立层（#pnc-bg-glass，z:-2，在视频/图片 z:-3 之上、其他元素之下），
-   视频/图片不再自带 blur，只保留亮度/饱和度调色 */
+/* v0.2.8：面板毛玻璃（v0.2.6 观感）+ 修复缩左——backdrop-filter 放面板 ::before 伪元素上
+   （视觉效果等同面板玻璃化，但伪元素不创建 containing block，不劫持 fixed 定位的弹层/设置面板）；
+   面板透度由 --pnc-glass-alpha 控制 */
 #pnc-bg-video{filter:brightness(0.8) saturate(0.9) !important;opacity:var(--pnc-video-alpha,1) !important}
-/* v152：左栏+上栏半透明回调（rgba(27,27,28,0.9)），等高线更灰；v155 不透明度可配置；v158 流动时长可配置；v0.2.7：默认透度降到 0.6（玻璃层模糊透过面板） */
-.pI_x6G_sidebarCol{background-color:rgba(27,27,28,var(--pnc-panel-alpha,0.6)) !important;animation:pnc-contour-flow-x var(--pnc-contour-flow-ms,180000ms) linear infinite !important}
+/* v152：左栏+上栏半透明回调；v0.2.8 玻璃化（伪元素承载 blur） */
+.pI_x6G_sidebarCol{position:relative !important;isolation:isolate !important;background-color:rgba(27,27,28,var(--pnc-glass-alpha,0.65)) !important;animation:pnc-contour-flow-x var(--pnc-contour-flow-ms,180000ms) linear infinite !important}
+.pI_x6G_sidebarCol::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%)}
 .hHd-Xa_root{background:transparent !important}
-.wSkVaW_header{background-color:rgba(27,27,28,var(--pnc-panel-alpha,0.6)) !important;position:relative;animation:pnc-contour-flow-x var(--pnc-contour-flow-ms,180000ms) linear infinite !important}
+.wSkVaW_header{position:relative !important;isolation:isolate !important;background-color:rgba(27,27,28,var(--pnc-glass-alpha,0.65)) !important;animation:pnc-contour-flow-x var(--pnc-contour-flow-ms,180000ms) linear infinite !important}
+.wSkVaW_header::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%)}
 .wSkVaW_headerUtilities{position:absolute !important;top:50% !important;transform:translateY(-50%) !important;right:28px !important;margin-left:0 !important}
 .pI_x6G_centerCol,.wSkVaW_root{background:transparent !important}
 .pI_x6G_centerCol{position:relative}
-.pI_x6G_centerCol::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:890px;margin-left:-445px;background:rgba(27,27,28,var(--pnc-panel-alpha,0.6));z-index:-1;pointer-events:none}
+.pI_x6G_centerCol::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:890px;margin-left:-445px;background:rgba(27,27,28,var(--pnc-glass-alpha,0.6));backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);z-index:-1;pointer-events:none}
 .gdEzaW_bubble{background:rgba(44,44,46,0.1) !important}
 .Md3f7G_column{position:relative !important}
 .pnc-conway{position:absolute !important;left:50% !important;margin-left:-445px !important;top:0 !important;display:block !important;z-index:-1 !important;pointer-events:none !important}
