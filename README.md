@@ -48,8 +48,8 @@ v0.1.1 起为**自包含可移植版**：视频、等高线素材、配额抓取
 打开 Web GUI → 侧栏底部 设置 → 「OpenCode Go 配额」：
 
 - **凭据与限额**：Cookie / Workspace ID / 5h·7d·1m 金额限额（含配置教程）
-- **毛玻璃层**：独立模糊层（`#pnc-bg-glass`）位于视频/图片之上、所有其他元素之下，统一对背景做毛玻璃效果（blur 24px + saturate 160% + 淡白底色，视频/图片不再自带 blur）；不透明度可在设置页调节（默认 80%）
-- **背景**（视频/图片合并入口）：上传 mp4/webm 或 PNG/JPEG/GIF/WebP（图片存在时优先于视频）、一键重置回包内默认视频、背景不透明度（视频与图片通用）、毛玻璃不透明度（独立模糊层）；上传/重置后页面自动刷新生效
+- **毛玻璃**：侧栏/上栏/中央面板半透明玻璃化（半透明深色底 + backdrop-filter blur 16px + saturate 140%，直接模糊其后的视频/图片背景）；「毛玻璃不透明度」滑条控制面板透度（越低背景越透）
+- **背景**（视频/图片合并入口）：上传 mp4/webm 或 PNG/JPEG/GIF/WebP（图片存在时优先于视频）、一键重置回包内默认视频、背景不透明度（视频与图片通用）、毛玻璃不透明度（面板透度）；上传/重置后页面自动刷新生效
 - **视觉主题**：
   - 用量条三色（5h/7d/1m 颜色选择器）
   - 不透明度：侧栏+上栏 / 等高线 / 康威方块
@@ -75,7 +75,7 @@ DSH_CHECKOUT=<checkout> bash scripts/build.sh
 
 ```bash
 # 方式一：GitHub Release tarball（推荐）
-dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.5/dsh-external-dsh-pnc-theme-0.2.5.tgz
+dsh plugin --profile web add https://github.com/Morinissleeping/dsh-pnc-theme/releases/download/v0.2.6/dsh-external-dsh-pnc-theme-0.2.6.tgz
 
 # 方式二：源码目录（lib/ 已提交，clone 后无需构建）
 git clone https://github.com/Morinissleeping/dsh-pnc-theme

@@ -49,7 +49,7 @@ textarea.pnc-input{resize:vertical;min-height:72px}
 .pnc-status.ok{color:var(--dsw-alias-state-success-primary,#3fb950)}
 .pnc-status.err{color:var(--dsw-alias-state-error-primary,#f85149)}
 `;
-		const PNC_THEME_DEFAULTS = { quotaMo: '#1550B5', quotaWk: '#3A7BF2', quotaRl: '#5E9CF5', panelAlpha: 0.9, contourAlpha: 0.3, conwayAlpha: 0.4, conwayDensity: 1, videoAlpha: 1, conwayRefreshMs: 260, conwayScrollMs: 260, conwayScrollBlocks: 0.135, contourFlowMs: 180000, contourRefreshMs: 0, glassAlpha: 0.8 };
+		const PNC_THEME_DEFAULTS = { quotaMo: '#1550B5', quotaWk: '#3A7BF2', quotaRl: '#5E9CF5', panelAlpha: 0.9, contourAlpha: 0.3, conwayAlpha: 0.4, conwayDensity: 1, videoAlpha: 1, conwayRefreshMs: 260, conwayScrollMs: 260, conwayScrollBlocks: 0.135, contourFlowMs: 180000, contourRefreshMs: 0, glassAlpha: 0.65 };
 		/** 设置页 React 组件：cookie/workspace_id/limits 表单 + 视觉主题参数，读写 /pnc-config。 */
 		function PncQuotaSection() {
 			const [cookie, setCookie] = React.useState("");
@@ -277,13 +277,13 @@ textarea.pnc-input{resize:vertical;min-height:72px}
 				React.createElement("p", { className: "pnc-desc" }, bgDesc()),
 				rangeRow("背景不透明度", "videoAlpha", 0, 1, 0.05, (v) => Math.round(v * 100) + "%"),
 				rangeRow("毛玻璃不透明度", "glassAlpha", 0, 1, 0.05, (v) => Math.round(v * 100) + "%"),
+				React.createElement("p", { className: "pnc-desc" }, "毛玻璃作用于侧栏/上栏/中央面板：数值越低面板越透，背景视频越清晰可见。"),
 				React.createElement("h4", null, "视觉主题"),
 				React.createElement("div", { className: "pnc-sub" }, "用量条颜色"),
 				colorRow("用量条 5h", "quotaMo"),
 				colorRow("用量条 7d", "quotaWk"),
 				colorRow("用量条 1m", "quotaRl"),
 				React.createElement("div", { className: "pnc-sub" }, "不透明度"),
-				rangeRow("侧栏+上栏", "panelAlpha", 0, 1, 0.05, (v) => Math.round(v * 100) + "%"),
 				rangeRow("等高线", "contourAlpha", 0, 1, 0.05, (v) => Math.round(v * 100) + "%"),
 				rangeRow("康威方块", "conwayAlpha", 0, 1, 0.05, (v) => Math.round(v * 100) + "%"),
 				React.createElement("div", { className: "pnc-sub" }, "速度与密度"),
