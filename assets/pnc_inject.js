@@ -518,22 +518,7 @@
     }).catch(function () {});
     setTimeout(pollActivity, 2000);
   }
-  // v0.2.10：毛玻璃层只覆盖中央聊天区（header 之下、centerCol 对齐）——侧栏/上栏区域背景保持清晰
-  function positionGlass() {
-    var glass = document.getElementById('pnc-bg-glass');
-    if (!glass) return;
-    var hd = document.querySelector('.wSkVaW_header');
-    var cc = document.querySelector('.pI_x6G_centerCol');
-    var top = hd ? Math.round(hd.getBoundingClientRect().bottom) : 0;
-    var r = cc ? cc.getBoundingClientRect() : null;
-    var left = r ? Math.round(r.left) : Math.round((window.innerWidth - 890) / 2);
-    var width = r ? Math.round(r.width) : 890;
-    glass.style.top = top + 'px';
-    glass.style.left = left + 'px';
-    glass.style.width = width + 'px';
-    glass.style.bottom = '0px';
-    glass.style.height = 'auto';
-  }
+  // v0.2.12：毛玻璃层回滚为全屏（v0.2.9 行为，删除 v0.2.10 的中央区定位）
   applyContour();
   ensureConway();
   ensureQuota();
@@ -542,7 +527,6 @@
   loadTheme();
   checkLightTheme();
   clipLogo();
-  positionGlass();
   updateQuota(false);
   setInterval(function () { updateQuota(false); }, 60000);
   if (window.MutationObserver) {
@@ -555,11 +539,10 @@
       ensureQuota();
       ensureAlign();
       clipLogo();
-      positionGlass();
     });
     mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
   }
-  window.addEventListener('resize', function () { ensureQuota(); ensureAlign(); ensureConway(); clipLogo(); positionGlass(); });
+  window.addEventListener('resize', function () { ensureQuota(); ensureAlign(); ensureConway(); clipLogo(); });
   var SELECTOR = '.hHd-Xa_newSession,.uV2eYG_primary,.nL4_yW_sessionLogButton,.uV2eYG_add,.qDHVXG_searchButton,.pXSMma_workspace,.qDHVXG_iconButton,.VOzbGW_trigger,.hHd-Xa_iconButton,.Nqubda_badge';
   document.addEventListener('pointerdown', function (e) {
     var el = e.target && e.target.closest ? e.target.closest(SELECTOR) : null;
